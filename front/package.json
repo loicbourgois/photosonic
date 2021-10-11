@@ -1,0 +1,21 @@
+{
+  "name": "photosonic",
+  "main": "index.js",
+  "bin": {
+    "create-wasm-app": ".bin/create-wasm-app.js"
+  },
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "start": "webpack-dev-server"
+  },
+  "dependencies": {
+    "wasm-photosonic": "file:../wasm/pkg"
+  },
+  "devDependencies": {
+    "copy-webpack-plugin": "^5.0.0",
+    "hello-wasm-pack": "^0.1.0",
+    "webpack": "^5.58.1",
+    "webpack-cli": "^4.9.0",
+    "webpack-dev-server": "^4.3.1"
+  }
+}
