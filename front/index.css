@@ -1,0 +1,30 @@
+* {
+  background: #0000;
+  margin: 0;
+  padding: 0;
+  color: #fff;
+  font-family: monospace;
+}
+
+body {
+  height: 100vh;
+  display: flex;
+  background: #000;
+}
+
+pre {
+  margin: auto;
+  background: #000;
+  color: #aEe;
+  font-size:1em;
+  line-height:1em;
+}
+
+.spacer {
+  flex-grow: 1;
+}
+
+canvas {
+  image-rendering: pixelated;
+  background-color: #222;
+}

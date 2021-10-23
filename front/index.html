@@ -2,9 +2,19 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Hello wasm-pack!</title>
+    <title>Photosonic</title>
+    <link rel="stylesheet" href="./index.css">
   </head>
   <body>
+    <div>
+      <div><label>FPS: </label><span id="fps_value"></span></div>
+      <div><label>Render: </label><span id="render_time"></span></div>
+      <div><label>Compute: </label><span id="compute_time"></span></div>
+    </div>
+    <span class="spacer"></span>
+    <canvas id="canvas"></canvas>
+    <pre id="pre"></pre>
+    <span class="spacer"></span>
     <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
     <script src="./bootstrap.js"></script>
   </body>
