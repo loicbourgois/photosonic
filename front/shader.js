@@ -70,8 +70,8 @@ fn random_u32(z:f32, x:f32, y:f32, min:u32, max:u32) -> u32 {
 // }
 
 
-[[group(0), binding(0)]] var<storage, read>   in  : Data;
-[[group(0), binding(1)]] var<storage, write>  out : Data;
+[[group(0), binding(0)]] var<storage, read>   input  : Data;
+[[group(0), binding(1)]] var<storage, write>  output : Data;
 [[group(0), binding(2)]] var<storage, write>  img : Image;
 [[stage(compute), workgroup_size(${conf.workgroup_size}, ${conf.workgroup_size})]]
 fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
@@ -88,13 +88,13 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
   // Coloring
 
 
-  if (in.particles[in.cells[cell_id].particle_id].kind == ${conf.FIRE}u ) {
+  if (input.particles[input.cells[cell_id].particle_id].kind == ${conf.FIRE}u ) {
     img.pix[pix_id].r = 255u;
-    img.pix[pix_id].g = 0u;
+    img.pix[pix_id].g = u32(input.particles[cell_id].y * 255.0);
     img.pix[pix_id].b = 0u;
     img.pix[pix_id].a = 255u;
   }
-  if (in.particles[in.cells[cell_id].particle_id].kind == ${conf.WATER}u ) {
+  if (input.particles[input.cells[cell_id].particle_id].kind == ${conf.WATER}u ) {
     img.pix[pix_id].r = 10u;
     img.pix[pix_id].g = 100u;
     img.pix[pix_id].b = 255u;
@@ -102,7 +102,7 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
   }
   if (gid.x < 10u && gid.y < 10u ) {
     img.pix[pix_id].r = 255u;
-    img.pix[pix_id].g = 255u - u32((in.time/1000.0*255.0)%255.0);
+    img.pix[pix_id].g = 255u - u32((input.time/1000.0*255.0)%255.0);
     img.pix[pix_id].b = 0u;
     img.pix[pix_id].a = 255u;
   }
@@ -110,25 +110,26 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
 
   // Compute
 
-//  img.pix[pix_id].g = in.particles[in.cells[cell_id].particle_id].kind;
-  // img.pix[pix_id].g = 255u;
-  //img.pix[pix_id].a = 255u;
+  //  img.pix[pix_id].g = input.particles[input.cells[cell_id].particle_id].kind;
+  // img.pix[pix_id].g = u32(input.particles[1].y*100.0);
+  // img.pix[pix_id].a = 255u;
 
 
-  // out.particles[1].kind = 255u;
-  // out.particles[cell_id].kind = ${conf.FIRE}u;
-  // out.particles[1].kind = in.particles[1].kind;
-  // out.particles[0].kind = ${conf.WATER}u;
-  // out.particles[0] = in.particles[cell_id];
-  //out.particles[cell_id] = in.particles[cell_id];
-  // if (in.cells[cell_id].particle_id != 0u) {
-  //   out.particles[in.cells[cell_id].particle_id].kind = 255u;
+  // output.particles[1].kind = 255u;
+  // output.particles[cell_id].kind = ${conf.FIRE}u;
+  // output.particles[1].kind = input.particles[1].kind;
+  // output.particles[0].kind = ${conf.WATER}u;
+  // output.particles[0] = input.particles[cell_id];
+  //output.particles[cell_id] = input.particles[cell_id];
+  // if (input.cells[cell_id].particle_id != 0u) {
+  //   output.particles[input.cells[cell_id].particle_id].kind = 255u;
   // }
 
 
-  out.cells[cell_id] = in.cells[cell_id];
-  out.particles[cell_id] = in.particles[cell_id];
-  out.particles[cell_id].x = (in.particles[cell_id].x + 0.001) % 1.0;
+  output.cells[cell_id] = input.cells[cell_id];
+  output.particles[cell_id] = input.particles[cell_id];
+  output.particles[cell_id].x = (input.particles[cell_id].x + 0.1) % 1.0;
+  output.particles[cell_id].y = (input.particles[cell_id].y + 0.1) % 1.0;
 }
 `}
 export {

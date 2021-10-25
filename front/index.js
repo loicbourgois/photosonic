@@ -1,30 +1,5 @@
 import * as wasm from "wasm-photosonic";
 
-// DIRECTION
-const UP      = 0;
-const RIGHT   = 1;
-const DOWN    = 2;
-const LEFT    = 3;
-const STAY    = 4;
-
-// CELL KIND
-const FREE      = 0;
-const ANT       = 1;
-const ANTHILL   = 2;
-const FIRE      = 3;
-const PLANT     = 4;
-const SUN     = 5;
-
-// ACTION
-const DO_NOTHING = 0;
-const PRODUCE = 1;
-
-const ANTHILL_ENERGY_MAX = 20000;
-const ANTHILL_PULSE = 10;
-
-const PHEROMON_MAX = 2000;
-
-const LIGHT_MAX = 100000;
 
 const conf = {
   image_width: 512,
@@ -44,10 +19,9 @@ conf.image_size = image_size()
 
 
 const WAIT = 0;
-const RANDO = 10;
 const ZOOM = 1;
 const size = 1;
-const data_size = 2;
+
 
 function main() {
   wasm.greet();
@@ -95,38 +69,49 @@ function buffer_position_cell_particle_id(x, y) {
   ) * 4
 }
 
+
+const BOB = true;
+
+
 function set_particle_kind(data, particle_id, kind) {
-  data.setUint32(buffer_position_particle_kind(particle_id), kind, true)
+  data.setUint32(buffer_position_particle_kind(particle_id), kind, BOB)
 }
-function get_particle_kind(data, particle_id, kind) {
-  return data.getUint32(buffer_position_particle_kind(particle_id), true)
+function get_particle_kind(data, particle_id) {
+  return data.getUint32(buffer_position_particle_kind(particle_id), BOB)
 }
 function set_particle_x(data, particle_id, value) {
-  data.setFloat32(buffer_position_particle_x(particle_id), value, true)
+  data.setFloat32(buffer_position_particle_x(particle_id), value, BOB)
 }
-function get_particle_x(data, particle_id, value) {
-  return data.getFloat32(buffer_position_particle_x(particle_id), true)
+function get_particle_x(data, particle_id) {
+  return data.getFloat32(buffer_position_particle_x(particle_id), BOB)
 }
 
 
 function set_particle_y(data, particle_id, value) {
-  data.setFloat32(buffer_position_particle_y(particle_id), value, true)
+  data.setFloat32(buffer_position_particle_y(particle_id), value, BOB)
+}
+function get_particle_y(data, particle_id) {
+  return data.getFloat32(buffer_position_particle_y(particle_id), BOB)
 }
 function set_particle_cell_id(data, particle_id, value) {
-  data.setUint32(buffer_position_particle_cell_id(particle_id), value, true)
+  data.setUint32(buffer_position_particle_cell_id(particle_id), value, BOB)
 }
 function get_particle_cell_id(data, particle_id) {
-  return data.getUint32(buffer_position_particle_cell_id(particle_id), true)
+  return data.getUint32(buffer_position_particle_cell_id(particle_id), BOB)
 }
 
 function set_cell_particle_id(data, cell_id, particle_id) {
-  data.setUint32(cell_id, particle_id, true)
+  data.setUint32(cell_id, particle_id, BOB)
 }
 function get_cell_particle_id(data, cell_id, particle_id) {
-  return data.getUint32(cell_id, true)
+  return data.getUint32(cell_id, BOB)
 }
-
-
+function get_particle(buffer, particle_id) {
+  return {
+    x: get_particle_x(buffer, particle_id),
+    y: get_particle_y(buffer, particle_id),
+  }
+}
 function set_particle(buffer, particle_id, x, y, kind) {
   let cell_id = buffer_position_cell_particle_id(
     Math.floor(x*(conf.grid_width-1)),
@@ -166,16 +151,24 @@ async function start() {
   const data = new DataView(gpu_buffer_A.getMappedRange())
 
   //set_particle(data, 7, 0.1, 0.0, conf.FIRE)
-  set_particle(data, 1, 0.0, 0.0, conf.FIRE)
+  set_particle(data, 1, 0.1, 0.2, conf.FIRE)
+  let p = get_particle(data, 1)
+  console.log(p)
+  // set_particle(data, 2, 0.1, 0.2, conf.FIRE)
   //set_particle(data, 7, 0.25, 0.0, conf.WATER)
 
 
   gpu_buffer_A.unmap()
 
 
+
+
+
+
+
   const gpu_buffer_B = device.createBuffer({
     size: buffer_size(),
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
   });
   const gpu_buffer_C = device.createBuffer({
     size: buffer_size(),
@@ -253,13 +246,9 @@ async function start() {
   const dispatch_x = Math.ceil(conf.image_width / conf.workgroup_size);
   const dispatch_y = Math.ceil(conf.image_height / conf.workgroup_size);
   // Init
-  await gpu_buffer_A.mapAsync(GPUMapMode.WRITE);
-  const array_buffer_A = gpu_buffer_A.getMappedRange();
-  new DataView(array_buffer_A).setUint32(0, 132)
-  gpu_buffer_A.unmap();
   const canvas =  document.querySelector("#canvas")
-  canvas.width = conf.image_width*size*ZOOM;
-  canvas.height = conf.image_height*size*ZOOM;
+  canvas.width =  conf.image_width * size * ZOOM;
+  canvas.height = conf.image_height * size * ZOOM;
   const ctx = canvas.getContext("2d");
   step(
     device,
@@ -277,7 +266,6 @@ async function start() {
     0
   )
 }
-
 async function step(
   device,
   gpu_buffer_A,
@@ -358,27 +346,41 @@ async function compute(
   step_
 ) {
   const start = performance.now();
+
+  // await gpu_buffer_A.mapAsync(GPUMapMode.WRITE);
+  // const data = new DataView(gpu_buffer_A.getMappedRange())
+  // data.setUint32(0, step_, BOB)
+  // data.setFloat32(4, performance.now(), BOB)
+  // if (step_ < 2) {
+  //   // set_particle(data, 1, 0.1, 0.2, conf.FIRE)
+  // }
+  // gpu_buffer_A.unmap();
+
+
   const command_encoder = device.createCommandEncoder();
-
-  await gpu_buffer_A.mapAsync(GPUMapMode.WRITE);
-  const data = new DataView(gpu_buffer_A.getMappedRange())
-  data.setUint32(0, step_, true)
-  data.setFloat32(4, performance.now(), true)
-
-
-  //console.log(get_particle_kind(data, 1))
-  console.log(get_particle_x(data, 1))
-  // set_particle_kind(data, 1, 4)
-
-  gpu_buffer_A.unmap();
-
   command_encoder.copyBufferToBuffer(gpu_buffer_A, 0, gpu_buffer_B, 0, buffer_size());
+
+
+  // command_encoder.copyBufferToBuffer(gpu_buffer_1, 0, gpu_buffer_D, 0, buffer_size());
+  // await gpu_buffer_D.mapAsync(GPUMapMode.READ); {
+  //   const buffer = new DataView(gpu_buffer_D.getMappedRange())
+  //   console.log("och", get_particle(buffer, 1))
+  // } gpu_buffer_D.unmap()
+
+
   const pass_encoder = command_encoder.beginComputePass();
   pass_encoder.setPipeline(compute_pipeline);
   pass_encoder.setBindGroup(0, bind_group);
   pass_encoder.dispatch(dispatch_x, dispatch_y);
   pass_encoder.endPass();
   command_encoder.copyBufferToBuffer(gpu_buffer_C, 0, gpu_buffer_D, 0 , buffer_size());
+  //command_encoder.copyBufferToBuffer(gpu_buffer_D, 0, gpu_buffer_A, 0 , buffer_size());
+
+
+
+
+
+
   command_encoder.copyBufferToBuffer(gpu_buffer_image_storage, 0, gpu_buffer_image_read, 0 , buffer_image_size_image());
   const gpuCommands = command_encoder.finish();
   device.queue.submit([gpuCommands]);
@@ -394,12 +396,51 @@ async function compute(
       0, 0
     );
     render_timer(performance.now() - start_render);
-  new Uint8Array(gpu_buffer_A.getMappedRange()).set(new Uint8Array(gpu_buffer_D.getMappedRange()));
+
   // new Uint8Array(gpu_buffer_D.getMappedRange()).set(new Uint8Array(gpu_buffer_A.getMappedRange()));
+
+
+
   gpu_buffer_A.unmap()
   gpu_buffer_D.unmap();
   gpu_buffer_image_read.unmap()
   compute_timer(performance.now() - start)
+
+  await gpu_buffer_D.mapAsync(GPUMapMode.READ); {
+  const buffer = new DataView(gpu_buffer_D.getMappedRange())
+  // console.log(get_particle(buffer, 1))
+  } gpu_buffer_D.unmap()
+
+
+  await gpu_buffer_A.mapAsync(GPUMapMode.WRITE);
+  await gpu_buffer_D.mapAsync(GPUMapMode.READ);
+
+  let data_a = new Uint8Array(gpu_buffer_A.getMappedRange())
+  let data_d = new Uint8Array(gpu_buffer_D.getMappedRange())
+  data_a.set(data_d);
+  // data_a.setUint32(0, step_, BOB)
+  gpu_buffer_A.unmap()
+  gpu_buffer_D.unmap();
+
+
+  //await gpu_buffer_A.mapAsync(GPUMapMode.WRITE);
+  //const data = new DataView(gpu_buffer_A.getMappedRange())
+  //data.setUint32(0, step_, BOB)
+  //data.setFloat32(4, performance.now(), BOB)
+  // if (step_ < 2) {
+  //   // set_particle(data, 1, 0.1, 0.2, conf.FIRE)
+  // }
+  //gpu_buffer_A.unmap();
+
+
+
+
+  await gpu_buffer_D.mapAsync(GPUMapMode.READ);
+  const buffer = new DataView(gpu_buffer_D.getMappedRange())
+  //console.log("end", get_particle(buffer, 1))
+  gpu_buffer_D.unmap()
+
+  return gpu_buffer_A
 }
 
 function copy(src)  {

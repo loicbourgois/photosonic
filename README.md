@@ -20,4 +20,4 @@ photosonic
 ## Resources
 
 - https://web.dev/gpu-compute/
-- https://en.wikipedia.org/wiki/List_of_Unicode_characters#Box_Drawing
+- https://rustwasm.github.io/docs/wasm-bindgen/examples/web-audio.html
