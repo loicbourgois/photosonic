@@ -11,11 +11,15 @@ function config() {
     grid_height: 64,
     workgroup_size: 8,
     grid_attributs_count: 1,
-    particle_attributs_count: 7,
-    consts_count: 2,
+    particle_attributs_count: particle_attributs_count,
+    consts_count: consts_count,
     FIRE: FIRE,
     WATER: WATER,
-    wait: 0,
+    center: {
+      x: 0.5,
+      y: 0.5,
+    },
+    wait: 100,
     zoom: 1,
     size: 1,
     littleEndian: true,
@@ -37,7 +41,7 @@ function config() {
     tests: {
       0: [
         {
-          particle: 1,
+          particle: 0,
           kv: {
             x: 0.41,
             y: 0.5,
@@ -46,7 +50,7 @@ function config() {
       ],
       7: [
         {
-          particle: 1,
+          particle: 0,
           kv: {
             x: 0.48,
           },
@@ -54,13 +58,13 @@ function config() {
       ],
       8: [
         {
-          particle: 1,
+          particle: 0,
           kv: {
             x: 0.49,
           },
         },
         {
-          particle: 2,
+          particle: 1,
           kv: {
             x: 0.51,
           },
@@ -68,12 +72,12 @@ function config() {
       ],
       9: [
         {
-          particle: 1,
+          particle: 0,
           kv: {
             x: 0.48,
           },
         },{
-          particle: 2,
+          particle: 1,
           kv: {
             x: 0.52,
           },
@@ -81,12 +85,12 @@ function config() {
       ],
       10: [
         {
-          particle: 1,
+          particle: 0,
           kv: {
             x: 0.47,
           },
         },{
-          particle: 2,
+          particle: 1,
           kv: {
             x: 0.53,
           },

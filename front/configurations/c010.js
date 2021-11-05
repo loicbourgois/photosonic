@@ -4,7 +4,7 @@ const grid_width = 64;
 
 function config() {
   return {
-    id: 'c008',
+    id: 'c009',
     image_width: 1024,
     image_height: 1024,
     grid_width: grid_width,
@@ -15,22 +15,22 @@ function config() {
     consts_count: 2,
     FIRE: FIRE,
     WATER: WATER,
-    wait: 200,
+    wait: 10,
     zoom: 1,
     size: 1,
     littleEndian: true,
     steps: 20,
     particles: [
       {
-        x: 0.45,
+        x: 0.9,
         y: 0.4,
-        dx: 0.005,
-        dy: 0.01,
+        dx: 0.01,
         kind: WATER,
       },
       {
-        x: 0.5,
+        x: 0.1,
         y: 0.5,
+        dx: -0.01,
         kind: WATER,
       },
     ],
@@ -39,41 +39,41 @@ function config() {
         {
           particle: 1,
           kv: {
-            x: 0.455,
-            y: 0.41,
+            x: 0.91,
+            y: 0.4,
           },
         }
       ],
-      7: [
+      9: [
         {
           particle: 1,
           kv: {
-            x: 0.49,
-            y: 0.48,
+            x: 1.0,
+            y: 0.4,
           },
         },{
           particle: 2,
           kv: {
-            x: 0.5,
+            x: 0.0,
             y: 0.5,
           },
         }
       ],
-      // 8: [
-      //   {
-      //     particle: 1,
-      //     kv: {
-      //       x: 0.49,
-      //       y: 0.48,
-      //     },
-      //   },{
-      //     particle: 2,
-      //     kv: {
-      //       x: 0.505,
-      //       y: 0.51,
-      //     },
-      //   }
-      // ],
+      10: [
+        {
+          particle: 1,
+          kv: {
+            x: 0.01,
+            y: 0.4,
+          },
+        },{
+          particle: 2,
+          kv: {
+            x: 0.99,
+            y: 0.5,
+          },
+        }
+      ],
     }
   }
 }

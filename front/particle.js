@@ -38,17 +38,17 @@ function get_particle_x(data, particle_id, conf) {
 }
 
 
-function set_particle_y(data, particle_id, value, conf) {
-  data.setFloat32(buffer_position_particle_y(particle_id, conf), value, conf.littleEndian)
+function set_particle_y(buffer, particle_id, value, conf) {
+  buffer.setFloat32(buffer_position_particle_y(particle_id, conf), value, conf.littleEndian)
 }
-function get_particle_y(data, particle_id, conf) {
-  return data.getFloat32(buffer_position_particle_y(particle_id, conf), conf.littleEndian)
+function get_particle_y(buffer, particle_id, conf) {
+  return buffer.getFloat32(buffer_position_particle_y(particle_id, conf), conf.littleEndian)
 }
-function set_particle_cell_id(data, particle_id, value, conf) {
-  data.setUint32(buffer_position_particle_cell_id(particle_id, conf), value, conf.littleEndian)
+function set_particle_cell_id(buffer, particle_id, value, conf) {
+  buffer.setUint32(buffer_position_particle_cell_id(particle_id, conf), value, conf.littleEndian)
 }
-function get_particle_cell_id(data, particle_id, conf) {
-  return data.getUint32(buffer_position_particle_cell_id(particle_id, conf), conf.littleEndian)
+function get_particle_cell_id(buffer, particle_id, conf) {
+  return buffer.getUint32(buffer_position_particle_cell_id(particle_id, conf), conf.littleEndian)
 }
 
 
@@ -105,11 +105,11 @@ function set(buffer, particle_id, x, y, dx, dy, kind, conf) {
     conf
   )
   let old_particle_id = get_cell_particle_id(buffer, cell_id, conf)
-  if (old_cell_id != 0 && old_cell_id != cell_id) {
-    set_cell_particle_id(buffer, old_cell_id, 0, conf)
+  if (old_cell_id != 999999999 && old_cell_id != cell_id) {
+    set_cell_particle_id(buffer, old_cell_id, 999999999, conf)
   }
-  if (old_particle_id != 0 && old_particle_id != particle_id) {
-    set_particle_cell_id(buffer, old_particle_id, 0, conf)
+  if (old_particle_id != 999999999 && old_particle_id != particle_id) {
+    set_particle_cell_id(buffer, old_particle_id, 999999999, conf)
   }
   set_particle_kind(buffer, particle_id, kind, conf)
   set_particle_x(buffer, particle_id, x, conf)
@@ -123,5 +123,8 @@ function set(buffer, particle_id, x, y, dx, dy, kind, conf) {
 
 export {
   set,
-  get
+  get,
+  set_particle_cell_id,
+  set_cell_particle_id,
+  buffer_position_cell_particle_id
 }

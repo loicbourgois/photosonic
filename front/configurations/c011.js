@@ -3,8 +3,11 @@ const WATER = 2;
 const grid_width = 64;
 
 function config() {
+
+  const diff = (1.0 / grid_width - 0.02/2 );
+
   return {
-    id: 'c008',
+    id: 'c011',
     image_width: 1024,
     image_height: 1024,
     grid_width: grid_width,
@@ -15,65 +18,39 @@ function config() {
     consts_count: 2,
     FIRE: FIRE,
     WATER: WATER,
-    wait: 200,
+    wait: 100,
     zoom: 1,
     size: 1,
     littleEndian: true,
-    steps: 20,
+    steps: 2000,
     particles: [
-      {
-        x: 0.45,
-        y: 0.4,
-        dx: 0.005,
-        dy: 0.01,
-        kind: WATER,
-      },
       {
         x: 0.5,
         y: 0.5,
         kind: WATER,
       },
+      {
+        x: 0.52,
+        y: 0.5,
+        kind: WATER,
+      },
     ],
     tests: {
-      0: [
+      1: [
         {
           particle: 1,
           kv: {
-            x: 0.455,
-            y: 0.41,
-          },
-        }
-      ],
-      7: [
-        {
-          particle: 1,
-          kv: {
-            x: 0.49,
-            y: 0.48,
+            x: 0.5 - diff,
+            y: 0.5,
           },
         },{
           particle: 2,
           kv: {
-            x: 0.5,
+            x: 0.52 + diff,
             y: 0.5,
           },
         }
       ],
-      // 8: [
-      //   {
-      //     particle: 1,
-      //     kv: {
-      //       x: 0.49,
-      //       y: 0.48,
-      //     },
-      //   },{
-      //     particle: 2,
-      //     kv: {
-      //       x: 0.505,
-      //       y: 0.51,
-      //     },
-      //   }
-      // ],
     }
   }
 }

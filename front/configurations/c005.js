@@ -11,11 +11,9 @@ function config() {
     grid_height: 64,
     workgroup_size: 8,
     grid_attributs_count: 1,
-    particle_attributs_count: 7,
-    consts_count: 2,
     FIRE: FIRE,
     WATER: WATER,
-    wait: 0,
+    wait: 1000,
     zoom: 1,
     size: 1,
     littleEndian: true,
@@ -88,7 +86,7 @@ function config() {
     tests: {
       0: [
         {
-          particle: 1,
+          particle: 0,
           kv: {
             x: 0.5,
             y: 0.4,
@@ -97,13 +95,13 @@ function config() {
       ],
       6: [
         {
-          particle: 9,
+          particle: 8,
           kv: {
             x: 0.47,
           },
         },
         {
-          particle: 10,
+          particle: 9,
           kv: {
             x: 0.50,
           },
@@ -111,64 +109,64 @@ function config() {
       ],
       7: [
         {
-          particle: 9,
+          particle: 8,
           kv: {
-            x: 0.47,
+            x: 0.4693748950958252,
           },
         },
         {
-          particle: 10,
-          kv: {
-            x: 0.51,
-          },
-        }
-      ],
-      8: [
-        {
           particle: 9,
           kv: {
-            x: 0.47,
-          },
-        },
-        {
-          particle: 10,
-          kv: {
-            x: 0.52,
+            x: 0.510624885559082,
           },
         }
       ],
-      9: [
-        {
-          particle: 9,
-          kv: {
-            x_old: 0.47,
-            x: 0.47,
-          },
-        },
-        {
-          particle: 10,
-          kv: {
-            x_old: 0.52,
-            x: 0.53,
-          },
-        }
-      ],
-      10: [
-        {
-          particle: 9,
-          kv: {
-            x_old: 0.47,
-            x: 0.47,
-          },
-        },
-        {
-          particle: 10,
-          kv: {
-            x_old: 0.53,
-            x: 0.54,
-          },
-        }
-      ],
+      // 8: [
+      //   {
+      //     particle: 8,
+      //     kv: {
+      //       x: 0.47,
+      //     },
+      //   },
+      //   {
+      //     particle: 9,
+      //     kv: {
+      //       x: 0.52,
+      //     },
+      //   }
+      // ],
+      // 9: [
+      //   {
+      //     particle: 8,
+      //     kv: {
+      //       x_old: 0.47,
+      //       x: 0.47,
+      //     },
+      //   },
+      //   {
+      //     particle: 9,
+      //     kv: {
+      //       x_old: 0.52,
+      //       x: 0.53,
+      //     },
+      //   }
+      // ],
+      // 10: [
+      //   {
+      //     particle: 8,
+      //     kv: {
+      //       x_old: 0.47,
+      //       x: 0.47,
+      //     },
+      //   },
+      //   {
+      //     particle: 9,
+      //     kv: {
+      //       x_old: 0.53,
+      //       x: 0.54,
+      //     },
+      //   }
+      // ],
       // 10: [
       //   {
       //     particle: 9,

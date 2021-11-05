@@ -11,7 +11,7 @@ function config() {
     grid_height: 64,
     workgroup_size: 8,
     grid_attributs_count: 1,
-    particle_attributs_count: 7,
+    particle_attributs_count: particle_attributs_count,
     consts_count: 2,
     FIRE: FIRE,
     WATER: WATER,

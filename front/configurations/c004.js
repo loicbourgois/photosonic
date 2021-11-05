@@ -10,7 +10,7 @@ function config() {
     grid_height: 64,
     workgroup_size: 8,
     grid_attributs_count: 1,
-    particle_attributs_count: 7,
+    particle_attributs_count: particle_attributs_count,
     consts_count: 2,
     FIRE: FIRE,
     WATER: WATER,
@@ -35,31 +35,13 @@ function config() {
     tests: {
       0: [
         {
-          particle: 1,
+          particle: 0,
           kv: {
             x: 0.501,
             y: 0.5,
           },
         }
       ],
-      // 9: [
-      //   {
-      //     particle: 1,
-      //     kv: {
-      //       x: 0.089,
-      //       y: 0.5,
-      //     },
-      //   }
-      // ],
-      // 19: [
-      //   {
-      //     particle: 1,
-      //     kv: {
-      //       x: 0.189,
-      //       y: 0.5,
-      //     },
-      //   }
-      // ]
     }
   }
 }

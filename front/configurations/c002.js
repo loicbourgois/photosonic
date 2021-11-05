@@ -1,7 +1,4 @@
-const FIRE  = 1;
-const WATER = 2;
-
-function config() {
+function config(c) {
   return {
     id: 'c002',
     image_width: 1024,
@@ -10,10 +7,6 @@ function config() {
     grid_height: 64,
     workgroup_size: 8,
     grid_attributs_count: 1,
-    particle_attributs_count: 7,
-    consts_count: 2,
-    FIRE: FIRE,
-    WATER: WATER,
     wait: 0,
     zoom: 1,
     size: 1,
@@ -24,13 +17,13 @@ function config() {
         x: 0.5,
         y: 0.5,
         dx: 0.001,
-        kind: FIRE,
+        kind: c.FIRE,
       },
     ],
     tests: {
       0: [
         {
-          particle: 1,
+          particle: 0,
           kv: {
             x: 0.501,
             y: 0.5,
@@ -39,7 +32,7 @@ function config() {
       ],
       9: [
         {
-          particle: 1,
+          particle: 0,
           kv: {
             x: 0.51,
             y: 0.5,
@@ -48,7 +41,7 @@ function config() {
       ],
       19: [
         {
-          particle: 1,
+          particle: 0,
           kv: {
             x: 0.52,
             y: 0.5,

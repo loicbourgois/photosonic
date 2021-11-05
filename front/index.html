@@ -6,13 +6,26 @@
     <link rel="stylesheet" href="./index.css">
   </head>
   <body>
+
+    <canvas id="canvas"></canvas>
     <div>
       <div><label>FPS: </label><span id="fps_value"></span></div>
       <div><label>Render: </label><span id="render_time"></span></div>
       <div><label>Compute: </label><span id="compute_time"></span></div>
+      <div>
+        <button id="button_unzoom">-</button>
+        <button id="button_zoom">+</button>
+      </div>
+      <div>
+        <button id="button_left">←</button>
+        <button id="button_right">→</button>
+        <button id="button_up">↑</button>
+        <button id="button_down">↓</button>
+      </div>
+
     </div>
-    <span class="spacer"></span>
-    <canvas id="canvas"></canvas>
+
+
     <pre id="pre"></pre>
     <span class="spacer"></span>
     <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>

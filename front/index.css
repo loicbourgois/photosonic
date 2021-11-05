@@ -28,3 +28,13 @@ canvas {
   image-rendering: pixelated;
   background-color: #111;
 }
+
+button {
+  border: none;
+  background: #333;
+  padding:0.5em;
+}
+button:hover {
+  cursor: pointer;
+  background: #444;
+}
