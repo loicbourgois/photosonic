@@ -5,7 +5,7 @@ use std::process::Command;
 extern crate dirs;
 extern crate notify;
 
-use notify::{Watcher, RecursiveMode, watcher};
+use notify::{watcher, RecursiveMode, Watcher};
 use std::sync::mpsc::channel;
 use std::time::Duration;
 fn main() {
@@ -42,12 +42,16 @@ fn runshellcmd(title: &str, command: &mut Command) -> bool {
     return false;
 }
 fn build() {
-    runshellcmd(
+    let ok = runshellcmd(
         "Building",
         Command::new("wasm-pack")
             .arg("build")
+            .env("RUSTFLAGS", "--cfg=web_sys_unstable_apis")
             .current_dir(format!("{}/wasm/", base_dir())),
     );
+    if !ok {
+        return;
+    }
     runshellcmd(
         "Fixing",
         Command::new("npm")
@@ -70,6 +74,13 @@ fn format() {
             .arg("--manifest-path")
             .arg(format!("{}/cli/Cargo.toml", base_dir())),
     );
+    runshellcmd(
+        "Formating",
+        Command::new("cargo")
+            .arg("fmt")
+            .arg("--manifest-path")
+            .arg(format!("{}/wasm/Cargo.toml", base_dir())),
+    );
 }
 fn start() {
     build();
@@ -83,13 +94,20 @@ fn start() {
 }
 fn watch() {
     let (tx, rx) = channel();
-    let mut watcher = watcher(tx, Duration::from_secs(10)).unwrap();
-    watcher.watch(format!("{}/wasm/src", base_dir()), RecursiveMode::Recursive).unwrap();
-    watcher.watch(format!("{}/wasm/Cargo.toml", base_dir()), RecursiveMode::Recursive).unwrap();
+    let mut watcher = watcher(tx, Duration::from_secs(1)).unwrap();
+    watcher
+        .watch(format!("{}/wasm/src", base_dir()), RecursiveMode::Recursive)
+        .unwrap();
+    watcher
+        .watch(
+            format!("{}/wasm/Cargo.toml", base_dir()),
+            RecursiveMode::Recursive,
+        )
+        .unwrap();
     loop {
         match rx.recv() {
-           Ok(_) => build(),
-           Err(e) => println!("watch error: {:?}", e),
+            Ok(_) => build(),
+            Err(e) => println!("watch error: {:?}", e),
         }
     }
 }

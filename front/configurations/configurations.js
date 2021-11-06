@@ -13,8 +13,8 @@ function config_list() {
     // 'c010': {},
     // 'c011': {},
     // 'c012': {},
-    //'c998': {},
-    'c999': {},
+    'c998': {},
+    // 'c999': {},
   }
 }
 
@@ -26,7 +26,12 @@ async function load(config_id) {
     FIRE:     4,
     ELECTRIC: 5,
     particle_attributs_count: window.particle_attributs_count,
-    consts_count: window.consts_count
+    consts_count: window.consts_count,
+    uniforms_attributs_count: 2,
+    mouse: {
+      x:0.5,
+      y: 0.5,
+    },
   }
   const conf = conf_wrapper.config(base_conf);
   Object.assign(conf,base_conf);

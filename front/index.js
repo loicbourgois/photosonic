@@ -118,6 +118,20 @@ async function start(conf, end_callback) {
     size: buffer_image_size_image(conf),
     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
   });
+
+
+  let gpu_buffers = {
+    uniforms_storage: device.createBuffer({
+      size: conf.uniforms_attributs_count*4,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+    }),
+    uniforms: device.createBuffer({
+      size: conf.uniforms_attributs_count*4,
+      usage: GPUBufferUsage.MAP_WRITE | GPUBufferUsage.COPY_SRC
+    })
+  }
+
+
   const bind_group_layout = device.createBindGroupLayout({
     entries: [
       {
@@ -151,6 +165,12 @@ async function start(conf, end_callback) {
         }
       },{
         binding: 2,
+        visibility: GPUShaderStage.COMPUTE,
+        buffer: {
+          type: "storage"
+        }
+      },{
+        binding: 3,
         visibility: GPUShaderStage.COMPUTE,
         buffer: {
           type: "storage"
@@ -194,6 +214,12 @@ async function start(conf, end_callback) {
         resource: {
           buffer: gpu_buffer_image_storage_previous
         }
+      },
+      {
+        binding: 3,
+        resource: {
+          buffer: gpu_buffers.uniforms_storage
+        }
       }
     ]
   });
@@ -230,7 +256,12 @@ async function start(conf, end_callback) {
   canvas.height = conf.image_height;
   const ctx = canvas.getContext("2d");
 
-
+  canvas.addEventListener('mousemove', e => {
+    conf.mouse = {
+      x: e.offsetX / canvas.getBoundingClientRect().width,
+      y: e.offsetY / canvas.getBoundingClientRect().height
+    }
+  });
 
   // Setup
   {
@@ -266,6 +297,9 @@ async function start(conf, end_callback) {
     gpu_buffer_image_storage,
     gpu_buffer_image_storage_previous,
     gpu_buffer_image_read,
+
+    gpu_buffers,
+
     compute_pipeline,
     compute_pipeline_render,
     bind_group,
@@ -294,6 +328,7 @@ async function step(
   gpu_buffer_image_storage,
   gpu_buffer_image_storage_previous,
   gpu_buffer_image_read,
+  gpu_buffers,
   compute_pipeline,
   compute_pipeline_render,
   bind_group,
@@ -307,7 +342,7 @@ async function step(
   step_ = 0,
 ) {
   fpss.push(performance.now()-fpss_time)
-  while (len(fpss) > 1000) {
+  while (len(fpss) > 100) {
     fpss.shift()
   }
   let fps = 0;
@@ -327,6 +362,7 @@ async function step(
     gpu_buffer_image_storage,
     gpu_buffer_image_storage_previous,
     gpu_buffer_image_read,
+    gpu_buffers,
     compute_pipeline,
     compute_pipeline_render,
     bind_group,
@@ -384,6 +420,7 @@ async function step(
         gpu_buffer_image_storage,
         gpu_buffer_image_storage_previous,
         gpu_buffer_image_read,
+        gpu_buffers,
         compute_pipeline,
         compute_pipeline_render,
         bind_group,
@@ -413,6 +450,7 @@ async function compute(
   gpu_buffer_image_storage,
   gpu_buffer_image_storage_previous,
   gpu_buffer_image_read,
+  gpu_buffers,
   compute_pipeline,
   compute_pipeline_render,
   bind_group,
@@ -440,7 +478,14 @@ async function compute(
   }
 
   {
+    await gpu_buffers.uniforms.mapAsync(GPUMapMode.WRITE);
+    let data = new DataView(gpu_buffers.uniforms.getMappedRange())
+    data.setFloat32(0 *4, conf.mouse.x, conf.littleEndian);
+    data.setFloat32(1 *4, conf.mouse.y, conf.littleEndian);
+    gpu_buffers.uniforms.unmap();
+
     const command_encoder = device.createCommandEncoder();
+    command_encoder.copyBufferToBuffer(gpu_buffers.uniforms, 0, gpu_buffers.uniforms_storage, 0, conf.uniforms_attributs_count*4 );
     command_encoder.copyBufferToBuffer(gpu_buffer_image_storage, 0, gpu_buffer_image_storage_previous, 0 , buffer_image_size_image(conf));
     const pass_encoder = command_encoder.beginComputePass();
     pass_encoder.setPipeline(compute_pipeline_render);

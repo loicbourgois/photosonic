@@ -28,6 +28,9 @@ canvas {
   image-rendering: pixelated;
   background-color: #111;
 }
+canvas:hover {
+  cursor: none;
+}
 
 button {
   border: none;

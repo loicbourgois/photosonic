@@ -31,6 +31,11 @@ struct Pixel {
 };
 
 
+[[block]] struct Uniforms {
+  mouse: vec2<f32>;
+};
+
+
 fn random_frac (x:f32, y:f32) -> f32 {
   return fract(sin(dot(vec2<f32>(x*1000.0,y),
                        vec2<f32>(12.9898, 78.233)))*
@@ -94,6 +99,7 @@ fn color_delta(particle_center: vec2<f32>, pixel: vec2<f32>) -> f32 {
 [[group(0), binding(0)]] var<storage, read>   input  : Data;
 [[group(0), binding(1)]] var<storage, write>  img : Image;
 [[group(0), binding(2)]] var<storage, write>  img_previous : Image;
+[[group(0), binding(3)]] var<storage, write>  uniforms : Uniforms;
 [[stage(compute), workgroup_size(${conf.workgroup_size}, ${conf.workgroup_size})]]
 fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
 
@@ -227,6 +233,19 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
       //   img.pix[pix_id].b = 100u;
       //   img.pix[pix_id].a = 255u;
       // }
+
+
+
+    let d_mouse = distance(vec2<f32>(gid.xy), vec2<f32>((uniforms.mouse.x * img_width), (uniforms.mouse.y * img_height)));
+
+    let diameter_mouse = img_width / ${conf.grid_width}.0 * input.zoom;
+
+  if (   d_mouse < diameter_mouse &&  d_mouse > diameter_mouse*0.5 ) {
+    img.pix[pix_id].r = 250u;
+      img.pix[pix_id].g = 150u;
+      img.pix[pix_id].b = 100u;
+      img.pix[pix_id].a = 255u;
+  }
 
 }
 `}
