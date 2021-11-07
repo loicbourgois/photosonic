@@ -13,10 +13,13 @@ function config_list() {
     // 'c010': {},
     // 'c011': {},
     // 'c012': {},
-    'c998': {},
-    // 'c999': {},
+    //'c997': {},
+    //'c998': {},
+    'c999': {},
   }
 }
+window.particle_attributs_count = 8;
+window.consts_count = 5;
 
 
 async function load(config_id) {
@@ -25,14 +28,21 @@ async function load(config_id) {
     WATER:    3,
     FIRE:     4,
     ELECTRIC: 5,
-    particle_attributs_count: window.particle_attributs_count,
-    consts_count: window.consts_count,
-    uniforms_attributs_count: 2,
+    particle_attributs_count: 8,
+    consts_count: 5,
+    uniforms_attributs_count: 7,
+    grid_attributs_count: 8,
     mouse: {
-      x:0.5,
-      y: 0.5,
+      x: -0.5,
+      y: -0.5,
     },
+    center: {
+      x: 0.0,
+      y: 0.0,
+    },
+    tests: {}
   }
+  base_conf.uniforms_compute_attributs_count = base_conf.uniforms_attributs_count;
   const conf = conf_wrapper.config(base_conf);
   Object.assign(conf,base_conf);
   conf.particle_max_count = particle_max_count(conf)
@@ -76,11 +86,7 @@ function grid_size(conf) {
   return conf.grid_width * conf.grid_height
 }
 function buffer_size(conf) {
-  return (
-    conf.consts_count
-    + conf.particle_max_count * conf.particle_attributs_count
-    + conf.grid_size * conf.grid_attributs_count * 1
-  ) * 4
+  return conf.grid_size * conf.grid_attributs_count * 4
 }
 
 

@@ -1,39 +1,5 @@
 function get (conf) {return `
-struct Particle {
-  active: u32;
-  kind: u32;
-  x: f32;
-  y: f32;
-  x_old: f32;
-  y_old: f32;
-  cell_id: u32;
-  collisions: u32;
-};
-struct Cell {
-  particle_id: u32;
-};
-[[block]] struct Data {
-  step: u32;
-  time: f32;
-  center: vec2<f32>;
-  zoom: f32;
-  particles: array<Particle, ${conf.particle_max_count}>;
-  cells: array<Cell, ${conf.grid_size}>;
-};
-struct Pixel {
-  r: u32;
-  g: u32;
-  b: u32;
-  a: u32;
-};
-[[block]] struct Image {
-  pix: array<Pixel, ${conf.image_size}>;
-};
-
-
-[[block]] struct Uniforms {
-  mouse: vec2<f32>;
-};
+${SHADER_COMMON}
 
 
 fn random_frac (x:f32, y:f32) -> f32 {
@@ -50,27 +16,6 @@ fn random_u32(z:f32, x:f32, y:f32, min:u32, max:u32) -> u32 {
 }
 
 
-
-fn right (cell_id: u32) -> u32 {
-  let x = cell_id % ${conf.grid_width}u;
-  let y = cell_id / ${conf.grid_width}u;
-  return (x+1u) % ${conf.grid_width}u + y * ${conf.grid_width}u;
-}
-fn left (cell_id: u32) -> u32 {
-  let x = cell_id % ${conf.grid_width}u;
-  let y = cell_id / ${conf.grid_width}u;
-  return (x + ${conf.grid_width}u - 1u) % ${conf.grid_width}u + y * ${conf.grid_width}u;
-}
-fn up (cell_id: u32) -> u32 {
-  let x = cell_id % ${conf.grid_width}u;
-  let y = cell_id / ${conf.grid_width}u;
-  return x + ( (y + ${conf.grid_width}u - 1u)%${conf.grid_width}u ) * ${conf.grid_width}u;
-}
-fn down (cell_id: u32) -> u32 {
-  let x = cell_id % ${conf.grid_width}u;
-  let y = cell_id / ${conf.grid_width}u;
-  return x + ( (y + 1u)%${conf.grid_height}u ) * ${conf.grid_width}u;
-}
 
 
 fn fn_cell_id(gidx: u32, gidy: u32, zoom: f32) -> u32 {
@@ -99,7 +44,7 @@ fn color_delta(particle_center: vec2<f32>, pixel: vec2<f32>) -> f32 {
 [[group(0), binding(0)]] var<storage, read>   input  : Data;
 [[group(0), binding(1)]] var<storage, write>  img : Image;
 [[group(0), binding(2)]] var<storage, write>  img_previous : Image;
-[[group(0), binding(3)]] var<storage, write>  uniforms : Uniforms;
+[[group(0), binding(3)]] var<storage, read>  uniforms : Uniforms;
 [[stage(compute), workgroup_size(${conf.workgroup_size}, ${conf.workgroup_size})]]
 fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
 
@@ -107,18 +52,18 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
   let img_height = f32(${conf.image_height});
 
   let point = vec2<f32>(
-    ((f32(gid.x) - (0.5-input.center.x*input.zoom)*img_width   )/input.zoom + img_width)  % img_width ,
-    ((f32(gid.y) - (0.5-input.center.y*input.zoom)*img_height )/input.zoom + img_height) % img_height
+    ((f32(gid.x) - (0.5-uniforms.center.x*uniforms.zoom)*img_width   )/uniforms.zoom + img_width)  % img_width ,
+    ((f32(gid.y) - (0.5-uniforms.center.y*uniforms.zoom)*img_height )/uniforms.zoom + img_height) % img_height
   );
 
   let DIAMETER: f32 = ${2.0 / conf.grid_width};
-  let cell_id = fn_cell_id(u32(point.x), u32(point.y), input.zoom);
+  let cell_id = fn_cell_id(u32(point.x), u32(point.y), uniforms.zoom);
 
   let pixel_point = vec2<f32>(point.x/f32(${conf.image_width}), point.y/f32(${conf.image_height}));
 
   let center = vec2<u32>(
-    u32(${conf.image_width}.0 * (input.center.x   + 0.5)),
-    u32(${conf.image_height}.0 * (input.center.y  + 0.5))
+    u32(${conf.image_width}.0 * (uniforms.center.x   + 0.5)),
+    u32(${conf.image_height}.0 * (uniforms.center.y  + 0.5))
   );
   let pix_id = (  (gid.x)%${conf.image_width}u )
     + (gid.y)%${conf.image_height}u * ${conf.image_width}u;
@@ -151,18 +96,18 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
   var color_kind = 0u;
   var particle_id = 0u;
   for (var i = 0 ; i < 9 ; i=i+1) {
-    let particle_id_ = input.cells[ coloring_cell_ids[i] ].particle_id;
-    let particle = input.particles[particle_id_];
+    let particle_id_ = coloring_cell_ids[i];
+    let particle = input.cells[particle_id_];
     let particle_center = vec2<f32>(particle.x, particle.y);
     let d = 1.0 - distance_( pixel_point, particle_center )*${conf.grid_width}.0;
-    if (particle_id_ != 999999999u && d > d_max) {
+    if (input.cells[particle_id_].active == 1u && d > d_max) {
       d_max = d;
       color_kind = particle.kind;
-      particle_id = input.cells[ coloring_cell_ids[i] ].particle_id;
+      particle_id = particle_id_;
     }
   }
 
-  let collisions = input.particles[particle_id].collisions;
+  let collisions = input.cells[particle_id].collisions;
 
 
 
@@ -190,55 +135,20 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
   }
 
 
-  if (collisions == 0u && particle_id != 999999999u) {
-
-  } elseif (collisions == 1u && color_kind != 0u) {
-    // img.pix[pix_id].r = 255u;
-    // img.pix[pix_id].g = 255u;
-    // img.pix[pix_id].b = 0u;
-    // img.pix[pix_id].a = 255u;
-  } elseif (collisions == 2u && color_kind != 0u) {
-    // img.pix[pix_id].r = 255u;
-    // img.pix[pix_id].g = 155u;
-    // img.pix[pix_id].b = 0u;
-    // img.pix[pix_id].a = 255u;
-  } else {
-    // img.pix[pix_id].r = 255u;
-    // img.pix[pix_id].g = 0u;
-    // img.pix[pix_id].b = 0u;
-    // img.pix[pix_id].a = 255u;
-  }
-
-
-
-  // if (particle_id != 999999999u) {
-  //   img.pix[pix_id].r = 0u;
-  //   img.pix[pix_id].g = 200u;
+  // if(collisions != 0u && color_kind != 0u) {
+  //   img.pix[pix_id].r = 255u;
+  //   img.pix[pix_id].g = 0u;
   //   img.pix[pix_id].b = 0u;
   //   img.pix[pix_id].a = 255u;
   // }
 
 
-  let a = 0.9;
-  let b = 0.9;
-
-  // img.pix[pix_id].r = u32( f32(img.pix[pix_id].r)*a + f32(img_previous.pix[pix_id].r)*b  );
-  // img.pix[pix_id].g = u32( f32(img.pix[pix_id].g)*a + f32(img_previous.pix[pix_id].g)*b  );
-  // img.pix[pix_id].b = u32( f32(img.pix[pix_id].b)*a + f32(img_previous.pix[pix_id].g)*b  );
-
-      //
-      // if (abs(pixel_point.x) <= 0.002/input.zoom || abs(pixel_point.y) <= 0.002/input.zoom ) {
-      //   img.pix[pix_id].r = 250u;
-      //   img.pix[pix_id].g = 150u;
-      //   img.pix[pix_id].b = 100u;
-      //   img.pix[pix_id].a = 255u;
-      // }
 
 
 
     let d_mouse = distance(vec2<f32>(gid.xy), vec2<f32>((uniforms.mouse.x * img_width), (uniforms.mouse.y * img_height)));
 
-    let diameter_mouse = img_width / ${conf.grid_width}.0 * input.zoom;
+    let diameter_mouse = img_width / ${conf.grid_width}.0 * uniforms.zoom;
 
   if (   d_mouse < diameter_mouse &&  d_mouse > diameter_mouse*0.5 ) {
     img.pix[pix_id].r = 250u;
@@ -246,6 +156,7 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
       img.pix[pix_id].b = 100u;
       img.pix[pix_id].a = 255u;
   }
+
 
 }
 `}

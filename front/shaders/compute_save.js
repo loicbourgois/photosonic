@@ -38,13 +38,16 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
     var dx_collision = 0.0;
     var dy_collision = 0.0;
 
+    var dx_gravity = 0.0;
+    var dy_gravity = 0.0;
+
 
     let p1 = input.cells[cell_id];
     let velocity1 = vec2<f32>(p1.x, p1.y) - vec2<f32>(p1.x_old, p1.y_old);
     var colision_move = vec2<f32>(0.0, 0.0);
 
     var atraction_move = vec2<f32>(0.0, 0.0);
-    let atraction_move_factor = 0.1;
+    let atraction_move_factor = 1.0;
     var attractions = 0u;
 
     for (var i = 0 ; i < 24 ; i=i+1) {
@@ -53,18 +56,26 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
         let p2 = input.cells[p2id];
         let d = distance_wrap_around(vec2<f32>(p1.x, p1.y), vec2<f32>(p2.x, p2.y));
         let delta_position = delta_position_wrap_around (vec2<f32>(p1.x, p1.y), vec2<f32>(p2.x, p2.y) );
-
-
-
         if (d < DIAMETER) {
-          colision_move = colision_move + normalize(delta_position) * (DIAMETER - d) * 1.0;
-        }
-        if (d < DIAMETER * 1.1 && p1.kind == p2.kind) {
+          collisions = collisions + 1u;
+          colision_move = colision_move + normalize(delta_position) * (DIAMETER - d) * 1.9;
+
+          if (p1.kind == p2.kind) {
+            // let f = 1.0/d*d * normalize(delta_position) * 0.0001;
+            // dx_gravity = dx_gravity + f.x ;
+            // dy_gravity = dy_gravity + f.y ;
+          }
+
+        } elseif (d < DIAMETER * 1.5 && p1.kind == p2.kind) {
+          let f = - 1.0/d*d * normalize(delta_position) * 0.1;
+          // dx_gravity = dx_gravity + f.x ;
+          // dy_gravity = dy_gravity + f.y ;
           atraction_move = atraction_move + normalize(delta_position) * (DIAMETER - d) * 0.05;
+          //atraction_move = atraction_move + f;
           attractions = attractions + 1u;
         }
+
         if (d < DIAMETER ) {
-          collisions = collisions + 1u;
           // https://en.wikipedia.org/wiki/Elastic_collision#Two-dimensional_collision_with_two_moving_objects
           let velocity2 = vec2<f32>(p2.x, p2.y) - vec2<f32>(p2.x_old, p2.y_old);
           let delta_velocity = velocity1 - velocity2;
@@ -74,12 +85,14 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
           let dot_vp = dot(delta_velocity, delta_position);
           let distance_ = distance(vec2<f32>(0.0, 0.0), delta_position);
           let distance_squared = distance_ * distance_;
-          let acceleration = delta_position * mass_factor * dot_vp / distance_squared;
+
 
           if (p1.kind == p2.kind) {
-            dx_collision = dx_collision - acceleration.x*0.5;
-            dy_collision = dy_collision - acceleration.y*0.5;
+            // let acceleration = delta_position * mass_factor * dot_vp / distance_squared;
+            // dx_collision = dx_collision - acceleration.x*0.1;
+            // dy_collision = dy_collision - acceleration.y*0.1;
           } else {
+            let acceleration = delta_position * mass_factor * dot_vp / distance_squared;
             dx_collision = dx_collision - acceleration.x*1.0;
             dy_collision = dy_collision - acceleration.y*1.0;
           }
@@ -103,8 +116,8 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
     let air_resistance_x = (p1.x - p1.x_old) * air_resistance;
     let air_resistance_y = (p1.y - p1.y_old) * air_resistance;
     //
-    var dx = p1.x - p1.x_old + dx_collision - air_resistance_x;
-    var dy = p1.y - p1.y_old + dy_collision - air_resistance_y;
+    var dx = p1.x - p1.x_old + dx_collision - air_resistance_x + dx_gravity;
+    var dy = p1.y - p1.y_old + dy_collision - air_resistance_y + dy_gravity;
 
 
     //

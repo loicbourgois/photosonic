@@ -29,7 +29,7 @@ canvas {
   background-color: #111;
 }
 canvas:hover {
-  cursor: none;
+  /*cursor: none;*/
 }
 
 button {

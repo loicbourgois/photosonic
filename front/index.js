@@ -1,22 +1,63 @@
-"use strict";
+//"use strict";
 
 
 import * as wasm from "wasm-photosonic";
 
 
-let ZOOM = 1.0;
+
+function len(x) {
+  return x.length
+}
+function range(start, end) {
+    return (new Array(end - start)).fill(undefined).map((_, i) => i + start);
+}
+
+
+function buffer_image_size_image(conf) {
+  return conf.image_size * 4 * 4
+}
+
+
+const compute_times = []
+function compute_timer(t) {
+  compute_times.push(t)
+  while (len(compute_times) > 100) {
+    compute_times.shift()
+  }
+  let compute_time = 0;
+  for (let x of compute_times) {
+    compute_time += x;
+  }
+  compute_time /= len(compute_times)
+  document.querySelector("#compute_time").innerHTML = `${compute_time.toFixed(2)}ms`
+}
+
+
+const render_times = []
+function render_timer(t) {
+  render_times.push(t)
+  while (len(render_times) > 100) {
+    render_times.shift()
+  }
+  let render_time = 0;
+  for (let x of render_times) {
+    render_time += x;
+  }
+  render_time /= len(render_times)
+  document.querySelector("#render_time").innerHTML = `${render_time.toFixed(2)}ms`
+}
 
 
 async function main() {
   wasm.greet();
-  window.particle_attributs_count = 8;
-  window.consts_count = 5;
   window.math     = await import("./math.js")
   window.particle = await import("./particle.js")
-  window.compute_shader   = await import("./shaders/compute.js")
   window.compute_shader_setup   = await import("./shaders/compute_setup.js")
+  window.compute_shader_reset   = await import("./shaders/compute_reset.js")
+  window.compute_shader   = await import("./shaders/compute.js")
   window.render_shader   = await import("./shaders/render.js")
   window.Configurations = await import("./configurations/configurations.js")
+  window.shader_common = await import("./shaders/common.js")
   const configurations = await Configurations.load_all()
   if ("gpu" in navigator) {
      test(configurations)
@@ -44,6 +85,7 @@ function test(configurations) {
 
 
 async function start(conf, end_callback) {
+  shader_common.init(conf)
   document.getElementById("button_zoom").addEventListener("click", function(){
     conf.zoom = conf.zoom*1.05;
   });
@@ -51,17 +93,19 @@ async function start(conf, end_callback) {
     conf.zoom = Math.max(conf.zoom/1.05, 1.0) ;
   });
 
+  const oy = 0.025;
+
   document.getElementById("button_left").addEventListener("click", function(){
-    conf.center.x = (conf.center.x+0.025*conf.zoom + 1.0) % 1.0;
+    conf.center.x = (conf.center.x+oy*conf.zoom + 1.0) % 1.0;
   });
   document.getElementById("button_right").addEventListener("click", function(){
-    conf.center.x = (conf.center.x-0.025*conf.zoom + 1.0) % 1.0;
+    conf.center.x = (conf.center.x-oy*conf.zoom + 1.0) % 1.0;
   });
   document.getElementById("button_up").addEventListener("click", function(){
-    conf.center.y = (conf.center.y+0.025*conf.zoom + 1.0) % 1.0;
+    conf.center.y = (conf.center.y+oy*conf.zoom + 1.0) % 1.0;
   });
   document.getElementById("button_down").addEventListener("click", function(){
-    conf.center.y = (conf.center.y-0.025*conf.zoom + 1.0) % 1.0;
+    conf.center.y = (conf.center.y-oy*conf.zoom + 1.0) % 1.0;
   });
 
   const adapter = await navigator.gpu.requestAdapter();
@@ -70,6 +114,10 @@ async function start(conf, end_callback) {
     return;
   }
   const device = await adapter.requestDevice();
+  // console.log(navigator.gpu)
+  // console.log(adapter.name)
+  // console.log(device.features)
+  // console.log(device.limits)
   const gpu_buffer_A = device.createBuffer({
     size: conf.buffer_size,
     usage: GPUBufferUsage.MAP_WRITE | GPUBufferUsage.COPY_SRC
@@ -80,15 +128,15 @@ async function start(conf, end_callback) {
   buffer.setFloat32(4,  performance.now(), conf.littleEndian);
   buffer.setFloat32(8,  conf.center.x, conf.littleEndian);
   buffer.setFloat32(3 * 4, conf.center.y, conf.littleEndian);
-  buffer.setFloat32(4 * 4, ZOOM, conf.littleEndian);
-  for (let i = 0; i < conf.particle_max_count; i++ ) {
-    particle.set_particle_cell_id(buffer, i, 999999999, conf);
-  }
-  for (let i = 0; i < conf.grid_width; i++ ) {
-    for (let j = 0; j < conf.grid_width; j++ ) {
-      particle.set_cell_particle_id(buffer, particle.buffer_position_cell_particle_id(i, j, conf), 999999999, conf);
-    }
-  }
+  buffer.setFloat32(4 * 4, conf.zoom, conf.littleEndian);
+  // for (let i = 0; i < conf.particle_max_count; i++ ) {
+  //   particle.set_particle_cell_id(buffer, i, 999999999, conf);
+  // }
+  // for (let i = 0; i < conf.grid_width; i++ ) {
+  //   for (let j = 0; j < conf.grid_width; j++ ) {
+  //     particle.set_cell_particle_id(buffer, particle.buffer_position_cell_particle_id(i, j, conf), 999999999, conf);
+  //   }
+  // }
   for (let i = 0; i < len(conf.particles); i++) {
     const p = conf.particles[i]
     particle.set(buffer, i, p.x, p.y, p.dx, p.dy, p.kind, conf)
@@ -128,7 +176,17 @@ async function start(conf, end_callback) {
     uniforms: device.createBuffer({
       size: conf.uniforms_attributs_count*4,
       usage: GPUBufferUsage.MAP_WRITE | GPUBufferUsage.COPY_SRC
-    })
+    }),
+
+
+    uniforms_compute: device.createBuffer({
+      size: conf.uniforms_compute_attributs_count*4,
+      usage: GPUBufferUsage.MAP_WRITE | GPUBufferUsage.COPY_SRC
+    }),
+    uniforms_storage_compute: device.createBuffer({
+      size: conf.uniforms_compute_attributs_count*4,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+    }),
   }
 
 
@@ -142,6 +200,12 @@ async function start(conf, end_callback) {
         }
       },{
         binding: 1,
+        visibility: GPUShaderStage.COMPUTE,
+        buffer: {
+          type: "storage"
+        }
+      },{
+        binding: 2,
         visibility: GPUShaderStage.COMPUTE,
         buffer: {
           type: "storage"
@@ -190,6 +254,11 @@ async function start(conf, end_callback) {
         binding: 1,
         resource: {
           buffer: gpu_buffer_C
+        }
+      },{
+        binding: 2,
+        resource: {
+          buffer: gpu_buffers.uniforms_storage_compute
         }
       }
     ]
@@ -263,6 +332,21 @@ async function start(conf, end_callback) {
     }
   });
 
+  // Reset shader setup
+  const pipelines = {
+    reset: device.createComputePipeline({
+      layout: device.createPipelineLayout({
+        bindGroupLayouts: [bind_group_layout]
+      }),
+      compute: {
+        module: device.createShaderModule({
+          code: compute_shader_reset.get(conf)
+        }),
+        entryPoint: "main"
+      }
+    })
+  }
+
   // Setup
   {
     const shader_module_setup = device.createShaderModule({
@@ -286,7 +370,9 @@ async function start(conf, end_callback) {
     pass_encoder.endPass();
     const gpuCommands = command_encoder.finish();
     device.queue.submit([gpuCommands]);
+
   }
+
   step(
     conf,
     device,
@@ -302,6 +388,9 @@ async function start(conf, end_callback) {
 
     compute_pipeline,
     compute_pipeline_render,
+
+    pipelines,
+
     bind_group,
     bind_group_render,
     dispatch_x,
@@ -331,6 +420,8 @@ async function step(
   gpu_buffers,
   compute_pipeline,
   compute_pipeline_render,
+
+      pipelines,
   bind_group,
   bind_group_render,
   dispatch_x,
@@ -365,6 +456,8 @@ async function step(
     gpu_buffers,
     compute_pipeline,
     compute_pipeline_render,
+
+        pipelines,
     bind_group,
     bind_group_render,
     dispatch_x,
@@ -423,6 +516,8 @@ async function step(
         gpu_buffers,
         compute_pipeline,
         compute_pipeline_render,
+
+            pipelines,
         bind_group,
         bind_group_render,
         dispatch_x,
@@ -439,6 +534,8 @@ async function step(
   }
 }
 
+let user_input = true;
+
 
 async function compute(
   conf,
@@ -453,6 +550,8 @@ async function compute(
   gpu_buffers,
   compute_pipeline,
   compute_pipeline_render,
+
+      pipelines,
   bind_group,
   bind_group_render,
   dispatch_x,
@@ -463,45 +562,53 @@ async function compute(
   step_
 ) {
   const start = performance.now();
-
-  {
-    const command_encoder = device.createCommandEncoder();
+  const command_encoder = device.createCommandEncoder();
+  //command_encoder.copyBufferToBuffer(gpu_buffers.uniforms_compute, 0, gpu_buffers.uniforms_storage_compute, 0, conf.uniforms_compute_attributs_count*4 );
+  if(user_input) {
     command_encoder.copyBufferToBuffer(gpu_buffer_A, 0, gpu_buffer_B, 0, conf.buffer_size);
-    const pass_encoder = command_encoder.beginComputePass();
-    pass_encoder.setPipeline(compute_pipeline);
-    pass_encoder.setBindGroup(0, bind_group);
-    pass_encoder.dispatch(dispatch_x, dispatch_y);
-    pass_encoder.endPass();
-    command_encoder.copyBufferToBuffer(gpu_buffer_C, 0, gpu_buffer_D, 0 , conf.buffer_size);
-    const gpuCommands = command_encoder.finish();
-    device.queue.submit([gpuCommands]);
+  } else {
+    command_encoder.copyBufferToBuffer(gpu_buffer_C, 0, gpu_buffer_B, 0, conf.buffer_size);
   }
 
-  {
-    await gpu_buffers.uniforms.mapAsync(GPUMapMode.WRITE);
-    let data = new DataView(gpu_buffers.uniforms.getMappedRange())
-    data.setFloat32(0 *4, conf.mouse.x, conf.littleEndian);
-    data.setFloat32(1 *4, conf.mouse.y, conf.littleEndian);
-    gpu_buffers.uniforms.unmap();
+  const pass_encoder_reset = command_encoder.beginComputePass();
+  pass_encoder_reset.setPipeline(pipelines.reset);
+  pass_encoder_reset.setBindGroup(0, bind_group);
+  pass_encoder_reset.dispatch(dispatch_x, dispatch_y);
+  pass_encoder_reset.endPass();
+  const gpuCommands_reset = command_encoder.finish();
+  device.queue.submit([gpuCommands_reset]);
 
-    const command_encoder = device.createCommandEncoder();
-    command_encoder.copyBufferToBuffer(gpu_buffers.uniforms, 0, gpu_buffers.uniforms_storage, 0, conf.uniforms_attributs_count*4 );
-    command_encoder.copyBufferToBuffer(gpu_buffer_image_storage, 0, gpu_buffer_image_storage_previous, 0 , buffer_image_size_image(conf));
-    const pass_encoder = command_encoder.beginComputePass();
-    pass_encoder.setPipeline(compute_pipeline_render);
-    pass_encoder.setBindGroup(0, bind_group_render);
-    pass_encoder.dispatch(dispatch_x_render, dispatch_y_render);
-    pass_encoder.endPass();
-    command_encoder.copyBufferToBuffer(gpu_buffer_image_storage, 0, gpu_buffer_image_read, 0 , buffer_image_size_image(conf));
-    const gpuCommands = command_encoder.finish();
-    device.queue.submit([gpuCommands]);
+  const command_encoder_3 = device.createCommandEncoder();
+  const pass_encoder = command_encoder_3.beginComputePass();
+  pass_encoder.setPipeline(compute_pipeline);
+  pass_encoder.setBindGroup(0, bind_group);
+  pass_encoder.dispatch(dispatch_x, dispatch_y);
+  pass_encoder.endPass();
+  command_encoder_3.copyBufferToBuffer(gpu_buffer_C, 0, gpu_buffer_D, 0 , conf.buffer_size);
+  const gpuCommands = command_encoder_3.finish();
+  device.queue.submit([gpuCommands]);
+
+  const command_encoder_2 = device.createCommandEncoder();
+  command_encoder_2.copyBufferToBuffer(gpu_buffers.uniforms, 0, gpu_buffers.uniforms_storage, 0, conf.uniforms_attributs_count*4 );
+  command_encoder_2.copyBufferToBuffer(gpu_buffer_image_storage, 0, gpu_buffer_image_storage_previous, 0 , buffer_image_size_image(conf));
+  const pass_encoder_2 = command_encoder_2.beginComputePass();
+  pass_encoder_2.setPipeline(compute_pipeline_render);
+  pass_encoder_2.setBindGroup(0, bind_group_render);
+  pass_encoder_2.dispatch(dispatch_x_render, dispatch_y_render);
+  pass_encoder_2.endPass();
+  command_encoder_2.copyBufferToBuffer(gpu_buffer_image_storage, 0, gpu_buffer_image_read, 0 , buffer_image_size_image(conf));
+  const gpuCommands_2 = command_encoder_2.finish();
+  device.queue.submit([gpuCommands_2]);
+  let gpu_buffer_A_map = null;
+  let gpu_buffer_D_map = null;
+  if (user_input) {
+    gpu_buffer_A_map =  gpu_buffer_A.mapAsync(GPUMapMode.WRITE);
+    gpu_buffer_D_map =  gpu_buffer_D.mapAsync(GPUMapMode.READ);
   }
-
-
-  await gpu_buffer_image_read.mapAsync(GPUMapMode.READ);
-  await gpu_buffer_A.mapAsync(GPUMapMode.WRITE);
-  await gpu_buffer_D.mapAsync(GPUMapMode.READ);
   const start_render = performance.now();
+  let a_ = gpu_buffer_image_read.mapAsync(GPUMapMode.READ);
+  let d_ =  gpu_buffers.uniforms.mapAsync(GPUMapMode.WRITE);
+  await a_;
   ctx.putImageData(
     new ImageData(
       Uint8ClampedArray.from(new Uint32Array(gpu_buffer_image_read.getMappedRange())),
@@ -510,61 +617,32 @@ async function compute(
     0, 0
   );
   render_timer(performance.now() - start_render);
-  let data = new DataView(gpu_buffer_D.getMappedRange())
-  data.setUint32(0,   step_, conf.littleEndian);
-  data.setFloat32(4,  performance.now(), conf.littleEndian);
-  data.setFloat32(8,  conf.center.x, conf.littleEndian);
-  data.setFloat32(12, conf.center.y, conf.littleEndian);
-  data.setFloat32(4 * 4, conf.zoom, conf.littleEndian);
-  new Uint8Array(gpu_buffer_A.getMappedRange()).set(new Uint8Array(data.buffer));
-  gpu_buffer_A.unmap();
-  gpu_buffer_D.unmap();
-  gpu_buffer_image_read.unmap()
+  await d_;
+  let buffer = new DataView(gpu_buffers.uniforms.getMappedRange())
+  buffer.setFloat32(0 *4, conf.mouse.x, conf.littleEndian);
+  buffer.setFloat32(1 *4, conf.mouse.y, conf.littleEndian);
+  buffer.setUint32(2  *4,   step_, conf.littleEndian);
+  buffer.setFloat32(3 *4,  performance.now(), conf.littleEndian);
+  buffer.setFloat32(4 *4,  conf.center.x, conf.littleEndian);
+  buffer.setFloat32(5 *4, conf.center.y, conf.littleEndian);
+  buffer.setFloat32(6 *4, conf.zoom, conf.littleEndian);
+
+  // copy d to a
+  if (user_input) {
+    await gpu_buffer_A_map;
+    await gpu_buffer_D_map;
+    new Uint8Array(gpu_buffer_A.getMappedRange()).set( new Uint8Array(gpu_buffer_D.getMappedRange()) );
+    gpu_buffer_A.unmap();
+    gpu_buffer_D.unmap();
+  }
+  //
+  gpu_buffer_image_read.unmap();
+  gpu_buffers.uniforms.unmap();
   compute_timer(performance.now() - start)
+  user_input = false;
 }
 
 
-function len(x) {
-  return x.length
-}
-function range(start, end) {
-    return (new Array(end - start)).fill(undefined).map((_, i) => i + start);
-}
-
-
-function buffer_image_size_image(conf) {
-  return conf.image_size * 4 * 4
-}
-
-
-const compute_times = []
-function compute_timer(t) {
-  compute_times.push(t)
-  while (len(compute_times) > 100) {
-    compute_times.shift()
-  }
-  let compute_time = 0;
-  for (let x of compute_times) {
-    compute_time += x;
-  }
-  compute_time /= len(compute_times)
-  document.querySelector("#compute_time").innerHTML = `${compute_time.toFixed(2)}ms`
-}
-
-
-const render_times = []
-function render_timer(t) {
-  render_times.push(t)
-  while (len(render_times) > 100) {
-    render_times.shift()
-  }
-  let render_time = 0;
-  for (let x of render_times) {
-    render_time += x;
-  }
-  render_time /= len(render_times)
-  document.querySelector("#render_time").innerHTML = `${render_time.toFixed(2)}ms`
-}
 
 
 main()

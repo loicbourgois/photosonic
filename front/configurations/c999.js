@@ -10,7 +10,7 @@ function config(c) {
     particle_attributs_count: 8,
     consts_count: 2,
     wait: 0,
-    zoom: 4.0,
+    zoom: 10.0,
     size: 1,
     littleEndian: true,
     steps: "unlimited",
@@ -24,10 +24,10 @@ function config(c) {
   }
   c_.max_speed = 1.5 / c_.grid_width;
 
-  const a = c_.max_speed*0.5;
+  const a = c_.max_speed * 0.1;
   let particle_count = c_.grid_width * c_.grid_height / 4;
-  console.log(particle_count)
-  for (var i = 0; i < particle_count/100; i++) {
+  console.log(particle_count, "particles")
+  for (var i = 0; i < particle_count/10; i++) {
     for (let kind of [c.ELECTRIC, c.WATER, c.FIRE]) {
       c_.particles.push({
           x: Math.random(),
