@@ -132,15 +132,25 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
     img.pix[pix_id].g = 180u + u32(205.0 * d_max);
     img.pix[pix_id].b = u32(205.0 * d_max);
     img.pix[pix_id].a = 255u;
+  } elseif (color_kind == ${conf.TURBO}u ) {
+    img.pix[pix_id].r = 180u + u32(250.0 * d_max);
+    img.pix[pix_id].g = 100u + u32(200.0 * d_max);
+    img.pix[pix_id].b = 100u + u32(100.0 * d_max);
+    img.pix[pix_id].a = 255u;
+  } elseif (color_kind == ${conf.METAL}u ) {
+    img.pix[pix_id].r = 150u + u32(100.0 * d_max);
+    img.pix[pix_id].g = 150u + u32(100.0 * d_max);
+    img.pix[pix_id].b = 150u + u32(100.0 * d_max);
+    img.pix[pix_id].a = 255u;
   }
 
 
-  // if(collisions != 0u && color_kind != 0u) {
-  //   img.pix[pix_id].r = 255u;
-  //   img.pix[pix_id].g = 0u;
-  //   img.pix[pix_id].b = 0u;
-  //   img.pix[pix_id].a = 255u;
-  // }
+  if(collisions != 0u && color_kind != 0u) {
+    img.pix[pix_id].r = 255u;
+    img.pix[pix_id].g = 0u;
+    img.pix[pix_id].b = 0u;
+    img.pix[pix_id].a = 255u;
+  }
 
 
 

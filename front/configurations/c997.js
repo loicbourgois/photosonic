@@ -7,7 +7,7 @@ function config(c) {
     grid_height: 32,
     workgroup_size: 8,
     grid_attributs_count: 1,
-    wait: 10,
+    wait: 0,
     size: 1,
     littleEndian: true,
     steps: "unlimited",
@@ -17,20 +17,23 @@ function config(c) {
       {
         x: 0.0,
         y: 0.0,
-        //dx: 0.01,
-        kind: c.WATER,
+        kind: c.METAL,
+      },
+      {
+        x: 0.06,
+        y: 0.0,
+        kind: c.METAL,
+      },
+      {
+        x: 0.07,
+        y: 0.07,
+        kind: c.TURBO,
       },
       // {
-      //   x: 0.05,
-      //   y: 0.0,
+      //   x: 0.17,
+      //   y: 0.00,
       //   kind: c.WATER,
       // },
-      {
-        x: 0.09,
-        y: 0.01,
-        //dx: -0.01,
-        kind: c.WATER,
-      },
     ],
   }
   c_.max_speed = 1.0 / c_.grid_width;

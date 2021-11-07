@@ -13,7 +13,7 @@ function config_list() {
     // 'c010': {},
     // 'c011': {},
     // 'c012': {},
-    //'c997': {},
+    'c997': {},
     //'c998': {},
     'c999': {},
   }
@@ -25,9 +25,11 @@ window.consts_count = 5;
 async function load(config_id) {
   const conf_wrapper = await import(`./${config_id}.js`)
   const base_conf = {
-    WATER:    3,
-    FIRE:     4,
-    ELECTRIC: 5,
+    WATER:    1,
+    FIRE:     2,
+    ELECTRIC: 3,
+    METAL:    4,
+    TURBO:    5,
     particle_attributs_count: 8,
     consts_count: 5,
     uniforms_attributs_count: 7,
