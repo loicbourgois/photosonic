@@ -53,10 +53,10 @@ fn down (cell_id: u32) -> u32 {
 
 
 fn distance_wrap_around(a:vec2<f32>, b:vec2<f32>) -> f32{
-  let a2 =   fract(vec2<f32>(   (a.x + .25), (a.y + .25)  ));
-  let b2 =   fract(vec2<f32>(   (b.x + .25), (b.y + .25)  ));
-  let a3 =   fract(vec2<f32>(   (a.x + .5), (a.y + .5)  ));
-  let b3 =   fract(vec2<f32>(   (b.x + .5), (b.y + .5)  ));
+  let a2 =   (vec2<f32>(   fract(a.x + .25), fract(a.y + .25)  ));
+  let b2 =   (vec2<f32>(   fract(b.x + .25), fract(b.y + .25)  ));
+  let a3 =   (vec2<f32>(   fract(a.x + .5), fract(a.y + .5)  ));
+  let b3 =   (vec2<f32>(   fract(b.x + .5), fract(b.y + .5)  ));
   return min( min ( distance(a,b), distance(a2,b2) ), distance(a3,b3));
 }
 
@@ -79,9 +79,6 @@ fn delta_position_wrap_around(a:vec2<f32>, b:vec2<f32>) -> vec2<f32> {
     if (d2 < d3) {
       return a2 - b2;
     }
-    // else {
-    //   return a3 - b3;
-    // }
   }
   return a3 - b3;
 }

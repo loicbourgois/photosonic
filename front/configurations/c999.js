@@ -9,7 +9,7 @@ function config(c) {
     grid_attributs_count: 1,
     particle_attributs_count: 8,
     consts_count: 2,
-    wait: 10,
+    wait: 0,
     zoom: 10.0,
     size: 1,
     littleEndian: true,
@@ -32,8 +32,8 @@ function config(c) {
       c_.particles.push({
           x: Math.random(),
           y: Math.random(),
-          // dx: Math.random()*a-a/2,
-          // dy: Math.random()*a-a/2,
+          dx: Math.random()*a-a/2,
+          dy: Math.random()*a-a/2,
           kind: kind
       })
     }

@@ -146,10 +146,10 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
 
 
   if(collisions != 0u && color_kind != 0u) {
-    img.pix[pix_id].r = 255u;
-    img.pix[pix_id].g = 0u;
-    img.pix[pix_id].b = 0u;
-    img.pix[pix_id].a = 255u;
+    //img.pix[pix_id].r = 255u;
+    // img.pix[pix_id].g = 0u;
+    // img.pix[pix_id].b = 0u;
+    // img.pix[pix_id].a = 255u;
   }
 
 

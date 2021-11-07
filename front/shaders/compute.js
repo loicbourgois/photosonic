@@ -1,7 +1,7 @@
 function get (conf) {return `
 ${SHADER_COMMON}
 
-let linking: array<array<u32, 6>, 6> = array<array<u32, 6>, 6> (
+var<private> linking: array<array<u32, 6>, 6> = array<array<u32, 6>, 6> (
   array<u32, 6> (0u, 0u, 0u, 0u, 0u, 0u),  // none
   array<u32, 6> (0u, 1u, 0u, 0u, 0u, 0u),  // WATER
   array<u32, 6> (0u, 0u, 1u, 0u, 0u, 0u),  // FIRE
@@ -67,13 +67,16 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
 
         if (d < DIAMETER) {
           collisions = collisions + 1u;
-          colision_move = colision_move + normalize(delta_position) * (DIAMETER - d+0.0001) * 1.0;
-        } elseif (d < DIAMETER * 1.4 && linking[p1.kind][p2.kind] == 1u ) {
-          atraction_move = atraction_move - normalize(delta_position) * (d - DIAMETER) / DIAMETER * 0.0001;
+          colision_move = colision_move + normalize(delta_position) * (DIAMETER - d) * 0.9;
+        }
+        if (d < DIAMETER) {
+          //collisions = collisions + 1u;
+        }
+        if (d < DIAMETER * 1.2 && linking[p1.kind][p2.kind] == 1u ) {
+          let oi = (d - DIAMETER) / DIAMETER;
+          atraction_move = atraction_move - normalize(delta_position) *  oi * oi * 0.1 * DIAMETER;
           attractions = attractions + 1u;
-
           linked_neighbours_delta = linked_neighbours_delta + delta_position;
-
         }
         if (d < DIAMETER ) {
           // https://en.wikipedia.org/wiki/Elastic_collision#Two-dimensional_collision_with_two_moving_objects
@@ -88,9 +91,10 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
           let acceleration = delta_position * mass_factor * dot_vp / distance_squared;
 
           if (linking[p1.kind][p2.kind] == 1u ) {
-            dx_collision = dx_collision - acceleration.x*0.5;
-            dy_collision = dy_collision - acceleration.y*0.5;
-          } else {
+            dx_collision = dx_collision - acceleration.x*0.1;
+            dy_collision = dy_collision - acceleration.y*0.1;
+          }
+          else {
             dx_collision = dx_collision - acceleration.x*1.0;
             dy_collision = dy_collision - acceleration.y*1.0;
           }
@@ -102,10 +106,11 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
 
     var dx_ = 0.0;
     var dy_ = 0.0;
+    var turbo = 0.0001;
 
     if (p1.kind == ${conf.TURBO}u && attractions > 0u) {
-      dx_ = dx_ - normalize(linked_neighbours_delta).x *  0.00001;
-      dy_ = dy_ - normalize(linked_neighbours_delta).y *  0.00001;
+      dx_ = dx_ - normalize(linked_neighbours_delta).x *  turbo;
+      dy_ = dy_ - normalize(linked_neighbours_delta).y *  turbo;
     }
 
 
@@ -113,7 +118,7 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
       colision_move = colision_move / f32(collisions);
     }
     if (attractions > 1u) {
-      atraction_move = atraction_move / f32(attractions);
+      //atraction_move = atraction_move / f32(attractions);
     }
 
 
