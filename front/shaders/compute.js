@@ -106,7 +106,7 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
 
     var dx_ = 0.0;
     var dy_ = 0.0;
-    var turbo = 0.0001;
+    var turbo = 0.002 * DIAMETER;
 
     if (p1.kind == ${conf.TURBO}u && attractions > 0u) {
       dx_ = dx_ - normalize(linked_neighbours_delta).x *  turbo;

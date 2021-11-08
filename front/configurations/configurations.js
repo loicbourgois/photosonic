@@ -13,10 +13,10 @@ function config_list() {
     // 'c010': {},
     // 'c011': {},
     // 'c012': {},
-    //'c996': {},
+    'c996': {},
     // 'c997': {},
     //'c998': {},
-    'c999': {},
+    //'c999': {},
   }
 }
 window.particle_attributs_count = 8;
