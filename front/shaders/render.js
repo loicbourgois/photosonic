@@ -98,7 +98,12 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
   for (var i = 0 ; i < 9 ; i=i+1) {
     let particle_id_ = coloring_cell_ids[i];
     let particle = input.cells[particle_id_];
-    let particle_center = vec2<f32>(particle.x, particle.y);
+    // let particle_center = vec2<f32>(
+    //   (particle.x+particle.x_old)*0.5,
+    //   (particle.y+particle.y_old)*0.5);
+    let particle_center = vec2<f32>(
+      particle.x,
+      particle.y);
     let d = 1.0 - distance_( pixel_point, particle_center )*${conf.grid_width}.0;
     if (input.cells[particle_id_].active == 1u && d > d_max) {
       d_max = d;

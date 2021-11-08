@@ -12,7 +12,7 @@ function config(c) {
     littleEndian: true,
     steps: "unlimited",
     air_resistance: 0.0,
-    zoom: 4.0,
+    zoom: 1.0,
     particles: [
       {
         x: 0.0,
@@ -53,6 +53,12 @@ function config(c) {
 
       {
         x: 0.0,
+        y: 0.05,
+        kind: c.TURBO,
+      },
+
+      {
+        x: 0.2,
         y: 0.05,
         kind: c.TURBO,
       },

@@ -10,6 +10,8 @@ var<private> linking: array<array<u32, 6>, 6> = array<array<u32, 6>, 6> (
   array<u32, 6> (0u, 0u, 0u, 0u, 1u, 1u),  // TURBO
 );
 
+let delta_time = ${1.0 / 60.0};
+
 [[group(0), binding(0)]] var<storage, read>   input     : Data;
 [[group(0), binding(1)]] var<storage, write>  output    : Data;
 [[group(0), binding(2)]] var<storage, write>  uniforms  : Uniforms;
@@ -48,6 +50,10 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
     var dy_collision = 0.0;
 
 
+    var forces  = vec2<f32>(0.0, 0.0);
+    var moves   = vec2<f32>(0.0, 0.0);
+
+
     let p1 = input.cells[cell_id];
     let velocity1 = vec2<f32>(p1.x, p1.y) - vec2<f32>(p1.x_old, p1.y_old);
     var colision_move = vec2<f32>(0.0, 0.0);
@@ -57,6 +63,7 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
     var attractions = 0u;
 
     var linked_neighbours_delta = vec2<f32>(0.0, 0.0);
+    let mass_1 = 1.0;
 
     for (var i = 0 ; i < 24 ; i=i+1) {
       let p2id = neighboor_cell_id[i];
@@ -64,26 +71,20 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
         let p2 = input.cells[p2id];
         let d = distance_wrap_around(vec2<f32>(p1.x, p1.y), vec2<f32>(p2.x, p2.y)) ;
         let delta_position = delta_position_wrap_around (vec2<f32>(p1.x, p1.y), vec2<f32>(p2.x, p2.y) );
-
         if (d < DIAMETER * 1.2 && linking[p1.kind][p2.kind] == 1u ) {
           linked_neighbours_delta = linked_neighbours_delta + delta_position;
         }
-
-
         if (d < DIAMETER) {
           collisions = collisions + 1u;
-          colision_move = colision_move + normalize(delta_position) * (DIAMETER - d) * 0.5;
-        }
-        elseif (d < DIAMETER * 1.2 && linking[p1.kind][p2.kind] == 1u ) {
-          // let oi = (d - DIAMETER) / DIAMETER;
-          atraction_move = atraction_move + normalize(delta_position) * (DIAMETER - d) * 0.5;
+          moves = moves + normalize(delta_position) * (DIAMETER - d) * 0.5;
+        } elseif (d < DIAMETER * 1.2 && linking[p1.kind][p2.kind] == 1u ) {
           attractions = attractions + 1u;
+          moves = moves + normalize(delta_position) * (DIAMETER - d) * 0.45;
         }
         if (d < DIAMETER ) {
           // https://en.wikipedia.org/wiki/Elastic_collision#Two-dimensional_collision_with_two_moving_objects
           let velocity2 = vec2<f32>(p2.x-p2.x_old, p2.y-p2.y_old);
           let delta_velocity = velocity1 - velocity2;
-          let mass_1 = 1.0;
           let mass_2 = 1.0;
           let mass_factor = 2.0 * mass_2 / (mass_1 + mass_2);
           let dot_vp = dot(delta_velocity, delta_position);
@@ -91,61 +92,77 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
           let distance_squared = distance_ * distance_;
           let acceleration = delta_position * mass_factor * dot_vp / distance_squared;
           if (linking[p1.kind][p2.kind] == 1u ) {
-            // dx_collision = dx_collision - acceleration.x*0.1;
-            // dy_collision = dy_collision - acceleration.y*0.1;
+            dx_collision = dx_collision - acceleration.x*0.5;
+            dy_collision = dy_collision - acceleration.y*0.5;
           }
           else {
             dx_collision = dx_collision - acceleration.x*1.0;
             dy_collision = dy_collision - acceleration.y*1.0;
           }
         }
-
       }
     }
 
 
-    var dx_ = 0.0;
-    var dy_ = 0.0;
-    var turbo = 0.08 * DIAMETER;
+    var dx_turbo = 0.0;
+    var dy_turbo = 0.0;
+    var turbo = 1.5 * DIAMETER;
 
     if (p1.kind == ${conf.TURBO}u && attractions > 0u) {
-       dx_ = dx_ - normalize(linked_neighbours_delta).x *  turbo;
-       dy_ = dy_ - normalize(linked_neighbours_delta).y *  turbo;
+       forces = forces - normalize(linked_neighbours_delta) *  turbo;
     }
 
 
-    if (collisions > 1u) {
-      colision_move = colision_move / f32(collisions) * 1.5;
+    // if (p1.kind == ${conf.TURBO}u) {
+    //    // dx_turbo = dx_turbo - normalize(linked_neighbours_delta).x *  turbo;
+    //    dy_turbo = dy_turbo - turbo;
+    //    forces.y = forces.y - turbo;
+    // }
+
+
+    if (collisions > 2u) {
+      moves = moves / f32(collisions) * 1.5;
     }
     if (attractions > 1u) {
-      atraction_move = atraction_move / f32(attractions)* 1.5;
+      //atraction_move = atraction_move / f32(attractions)* 1.5;
     }
 
 
-    var x_old = input.cells[cell_id].x;
-    var y_old = input.cells[cell_id].y;
+    // var x_old = input.cells[cell_id].x;
+    // var y_old = input.cells[cell_id].y;
 
-    let air_resistance = f32(${conf.air_resistance});
-    let air_resistance_x = (p1.x - p1.x_old) * air_resistance;
-    let air_resistance_y = (p1.y - p1.y_old) * air_resistance;
+    // let air_resistance = f32(${conf.air_resistance});
+    // let air_resistance_x = (p1.x - p1.x_old) * air_resistance;
+    // let air_resistance_y = (p1.y - p1.y_old) * air_resistance;
+    //
+    // var dx = p1.x - p1.x_old + dx_collision - air_resistance_x + dx_turbo ;
+    // var dy = p1.y - p1.y_old + dy_collision - air_resistance_y + dy_turbo ;
 
-    var dx = p1.x - p1.x_old + dx_collision - air_resistance_x + dx_ ;
-    var dy = p1.y - p1.y_old + dy_collision - air_resistance_y + dy_ ;
+    // let max_speed = f32(${conf.max_speed});
+    // dx = clamp(dx, -max_speed, max_speed);
+    // dy = clamp(dy, -max_speed, max_speed);
 
-    let max_speed = f32(${conf.max_speed});
-    dx = clamp(dx, -max_speed, max_speed);
-    dy = clamp(dy, -max_speed, max_speed);
+    // let x = fract(x_old + dx + 1.0 + colision_move.x + atraction_move.x);
+    // let y = fract(y_old + dy + 1.0 + colision_move.y + atraction_move.y);
+    //
+    // x_old = fract(x_old + dx + 1.0 + colision_move.x + atraction_move.x * atraction_move_factor) - dx + dx_turbo*0.0;
+    // y_old = fract(y_old + dy + 1.0 + colision_move.y + atraction_move.y * atraction_move_factor) - dy + dy_turbo*0.0;
 
-    let x = fract(x_old + dx + 1.0 + colision_move.x + atraction_move.x);
-    let y = fract(y_old + dy + 1.0 + colision_move.y + atraction_move.y);
 
-    x_old = fract(x_old + dx + 1.0 + colision_move.x + atraction_move.x * atraction_move_factor) - dx;
-    y_old = fract(y_old + dy + 1.0 + colision_move.y + atraction_move.y * atraction_move_factor) - dy;
+    let acceleration = forces / mass_1;
+    let speed = vec2<f32>(p1.x, p1.y) - vec2<f32>(p1.x_old, p1.y_old)
+      + acceleration * delta_time * delta_time
+      + vec2<f32>(dx_collision, dy_collision);
+
+    let x_old_ = input.cells[cell_id].x + moves.x;
+    let y_old_ = input.cells[cell_id].y + moves.y;
+    let x = fract(x_old_ + speed.x);
+    let y = fract(y_old_ + speed.y);
+    let x_old = x - speed.x;
+    let y_old = y - speed.y;
 
     let cell_id_new = u32(x * f32(${conf.image_width})) / ${Math.floor(conf.image_width/conf.grid_width)}u
       + u32(y * f32(${conf.image_height})) / ${Math.floor(conf.image_height/conf.grid_height)}u * ${conf.grid_width}u;
-
-
 
     output.cells[cell_id_new].active = 1u;
     output.cells[cell_id_new].kind = input.cells[cell_id].kind;

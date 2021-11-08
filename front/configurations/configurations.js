@@ -13,11 +13,11 @@ function config_list() {
     // 'c010': {},
     // 'c011': {},
     // 'c012': {},
-    'c996': {},
+    //'c996': {},
     // 'c997': {},
     //'c998': {},
-    //'c999': {},
-    //'c_editor':{}
+    'c999': {},
+    'c_editor':{}
   }
 }
 window.particle_attributs_count = 8;

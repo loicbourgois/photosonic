@@ -24,7 +24,7 @@ function config(c) {
   }
   c_.max_speed = 1.0 / c_.grid_width;
 
-  const a = c_.max_speed * 0.1;
+  const a = c_.max_speed * 1.0;
   let particle_count = c_.grid_width * c_.grid_height / 4;
   console.log(particle_count, "particles")
   for (var i = 0; i < particle_count/10; i++) {
