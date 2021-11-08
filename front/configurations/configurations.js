@@ -17,6 +17,7 @@ function config_list() {
     // 'c997': {},
     //'c998': {},
     //'c999': {},
+    //'c_editor':{}
   }
 }
 window.particle_attributs_count = 8;

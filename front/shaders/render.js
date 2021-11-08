@@ -156,9 +156,9 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
 
 
 
-    let d_mouse = distance(vec2<f32>(gid.xy), vec2<f32>((uniforms.mouse.x * img_width), (uniforms.mouse.y * img_height)));
+  let d_mouse = distance(vec2<f32>(gid.xy), vec2<f32>((uniforms.mouse.x * img_width), (uniforms.mouse.y * img_height)));
+  let diameter_mouse = img_width / ${conf.grid_width}.0 * uniforms.zoom;
 
-    let diameter_mouse = img_width / ${conf.grid_width}.0 * uniforms.zoom;
 
   if (   d_mouse < diameter_mouse &&  d_mouse > diameter_mouse*0.5 ) {
     img.pix[pix_id].r = 250u;
@@ -167,6 +167,13 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
       img.pix[pix_id].a = 255u;
   }
 
+
+  if (abs(pixel_point.x) < 0.001 || abs(pixel_point.y) < 0.001) {
+    img.pix[pix_id].r = 200u;
+      img.pix[pix_id].g = 50u;
+      img.pix[pix_id].b = 50u;
+      img.pix[pix_id].a = 255u;
+  }
 
 }
 `}

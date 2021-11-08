@@ -108,6 +108,10 @@ async function start(conf, end_callback) {
     conf.center.y = (conf.center.y-oy*conf.zoom + 1.0) % 1.0;
   });
 
+
+
+
+
   const adapter = await navigator.gpu.requestAdapter();
   if (!adapter) {
     console.error("No gpu adapter found")
@@ -327,6 +331,13 @@ async function start(conf, end_callback) {
 
   canvas.addEventListener('mousemove', e => {
     conf.mouse = {
+      x: e.offsetX / canvas.getBoundingClientRect().width,
+      y: e.offsetY / canvas.getBoundingClientRect().height
+    }
+  });
+
+  canvas.addEventListener("click", e => {
+    window.canvas_click = {
       x: e.offsetX / canvas.getBoundingClientRect().width,
       y: e.offsetY / canvas.getBoundingClientRect().height
     }
@@ -562,10 +573,35 @@ async function compute(
   step_
 ) {
   const start = performance.now();
+  if(window.canvas_click) {
+    console.log(window.canvas_click)
+    const command_encoder = device.createCommandEncoder();
+    command_encoder.copyBufferToBuffer(gpu_buffer_C, 0, gpu_buffer_D, 0 , conf.buffer_size);
+    device.queue.submit([command_encoder.finish()]);
+    let gpu_buffer_A_map =  gpu_buffer_A.mapAsync(GPUMapMode.WRITE);
+    let gpu_buffer_D_map =  gpu_buffer_D.mapAsync(GPUMapMode.READ);
+    await gpu_buffer_A_map;
+    await gpu_buffer_D_map;
+
+    let view = new DataView(gpu_buffer_D.getMappedRange())
+    let p = {
+      x: (window.canvas_click.x/conf.zoom - 0.5 / conf.zoom + conf.center.x + 1.0 )%1.0,
+      y: (window.canvas_click.y/conf.zoom - 0.5 / conf.zoom + conf.center.y + 1.0 )%1.0,
+    }
+    particle.set(view, null, p.x, p.y, 0.0, 0.0, conf.METAL, conf)
+
+    new Uint8Array(gpu_buffer_A.getMappedRange()).set( new Uint8Array( view.buffer ) );
+    gpu_buffer_A.unmap();
+    gpu_buffer_D.unmap();
+  }
+
+
   const command_encoder = device.createCommandEncoder();
   //command_encoder.copyBufferToBuffer(gpu_buffers.uniforms_compute, 0, gpu_buffers.uniforms_storage_compute, 0, conf.uniforms_compute_attributs_count*4 );
-  if(user_input) {
+  if(window.canvas_click || user_input) {
     command_encoder.copyBufferToBuffer(gpu_buffer_A, 0, gpu_buffer_B, 0, conf.buffer_size);
+    window.canvas_click = null
+    user_input = false
   } else {
     command_encoder.copyBufferToBuffer(gpu_buffer_C, 0, gpu_buffer_B, 0, conf.buffer_size);
   }
@@ -584,7 +620,7 @@ async function compute(
   pass_encoder.setBindGroup(0, bind_group);
   pass_encoder.dispatch(dispatch_x, dispatch_y);
   pass_encoder.endPass();
-  command_encoder_3.copyBufferToBuffer(gpu_buffer_C, 0, gpu_buffer_D, 0 , conf.buffer_size);
+  // command_encoder_3.copyBufferToBuffer(gpu_buffer_C, 0, gpu_buffer_D, 0 , conf.buffer_size);
   const gpuCommands = command_encoder_3.finish();
   device.queue.submit([gpuCommands]);
 
@@ -601,10 +637,10 @@ async function compute(
   device.queue.submit([gpuCommands_2]);
   let gpu_buffer_A_map = null;
   let gpu_buffer_D_map = null;
-  if (user_input) {
-    gpu_buffer_A_map =  gpu_buffer_A.mapAsync(GPUMapMode.WRITE);
-    gpu_buffer_D_map =  gpu_buffer_D.mapAsync(GPUMapMode.READ);
-  }
+  // if (user_input) {
+  //   gpu_buffer_A_map =  gpu_buffer_A.mapAsync(GPUMapMode.WRITE);
+  //   gpu_buffer_D_map =  gpu_buffer_D.mapAsync(GPUMapMode.READ);
+  // }
   const start_render = performance.now();
   let a_ = gpu_buffer_image_read.mapAsync(GPUMapMode.READ);
   let d_ =  gpu_buffers.uniforms.mapAsync(GPUMapMode.WRITE);
@@ -628,13 +664,13 @@ async function compute(
   buffer.setFloat32(6 *4, conf.zoom, conf.littleEndian);
 
   // copy d to a
-  if (user_input) {
-    await gpu_buffer_A_map;
-    await gpu_buffer_D_map;
-    new Uint8Array(gpu_buffer_A.getMappedRange()).set( new Uint8Array(gpu_buffer_D.getMappedRange()) );
-    gpu_buffer_A.unmap();
-    gpu_buffer_D.unmap();
-  }
+  // if (user_input) {
+  //   await gpu_buffer_A_map;
+  //   await gpu_buffer_D_map;
+  //   new Uint8Array(gpu_buffer_A.getMappedRange()).set( new Uint8Array(gpu_buffer_D.getMappedRange()) );
+  //   gpu_buffer_A.unmap();
+  //   gpu_buffer_D.unmap();
+  // }
   //
   gpu_buffer_image_read.unmap();
   gpu_buffers.uniforms.unmap();
