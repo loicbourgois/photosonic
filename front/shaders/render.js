@@ -18,7 +18,7 @@ fn random_u32(z:f32, x:f32, y:f32, min:u32, max:u32) -> u32 {
 
 
 
-fn fn_cell_id(gidx: u32, gidy: u32, zoom: f32) -> u32 {
+fn fn_cell_id(gidx: u32, gidy: u32) -> u32 {
   let unit = f32(${Math.floor(conf.image_width / conf.grid_width)});
   let x = f32(gidx) ;
   let y = f32(gidy);
@@ -47,24 +47,33 @@ fn color_delta(particle_center: vec2<f32>, pixel: vec2<f32>) -> f32 {
 [[group(0), binding(3)]] var<storage, read>  uniforms : Uniforms;
 [[stage(compute), workgroup_size(${conf.workgroup_size}, ${conf.workgroup_size})]]
 fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
-
   let img_width = f32(${conf.image_width});
   let img_height = f32(${conf.image_height});
+  let grid_width = f32(${conf.grid_width});
+  let grid_height = f32(${conf.grid_height});
+
+
+   //let focus_point = uniforms.center;
+  let focus_point = vec2<f32>(
+    input.cells[uniforms.focus].x,
+    input.cells[uniforms.focus].y
+  );
 
   let point = vec2<f32>(
-    ((f32(gid.x) - (0.5-uniforms.center.x*uniforms.zoom)*img_width   )/uniforms.zoom + img_width)  % img_width ,
-    ((f32(gid.y) - (0.5-uniforms.center.y*uniforms.zoom)*img_height )/uniforms.zoom + img_height) % img_height
+    fract((f32(gid.x) / img_width / uniforms.zoom - 0.5 / uniforms.zoom + focus_point.x + 1.0)),
+    fract((f32(gid.y) / img_height / uniforms.zoom - 0.5 / uniforms.zoom + focus_point.y + 1.0))
   );
-
   let DIAMETER: f32 = ${2.0 / conf.grid_width};
-  let cell_id = fn_cell_id(u32(point.x), u32(point.y), uniforms.zoom);
+  let cell_id = u32(point.x*grid_width) + u32(point.y*grid_width)*u32(grid_width);
 
-  let pixel_point = vec2<f32>(point.x/f32(${conf.image_width}), point.y/f32(${conf.image_height}));
 
-  let center = vec2<u32>(
-    u32(${conf.image_width}.0 * (uniforms.center.x   + 0.5)),
-    u32(${conf.image_height}.0 * (uniforms.center.y  + 0.5))
-  );
+
+
+
+  // let center = vec2<u32>(
+  //   u32(${conf.image_width}.0 * (focus_point.x   + 0.5)),
+  //   u32(${conf.image_height}.0 * (focus_point.y  + 0.5))
+  // );
   let pix_id = (  (gid.x)%${conf.image_width}u )
     + (gid.y)%${conf.image_height}u * ${conf.image_width}u;
 
@@ -104,7 +113,7 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
     let particle_center = vec2<f32>(
       particle.x,
       particle.y);
-    let d = 1.0 - distance_( pixel_point, particle_center )*${conf.grid_width}.0;
+    let d = 1.0 - distance_( point, particle_center )*${conf.grid_width}.0;
     if (input.cells[particle_id_].active == 1u && d > d_max) {
       d_max = d;
       color_kind = particle.kind;
@@ -138,24 +147,37 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
     img.pix[pix_id].b = u32(205.0 * d_max);
     img.pix[pix_id].a = 255u;
   } elseif (color_kind == ${conf.TURBO}u ) {
-    img.pix[pix_id].r = 180u + u32(250.0 * d_max);
-    img.pix[pix_id].g = 100u + u32(200.0 * d_max);
-    img.pix[pix_id].b = 100u + u32(100.0 * d_max);
+    let aa = 0.5 + 0.5*uniforms.mappings[input.cells[particle_id].mapping];
+    img.pix[pix_id].r = u32(205.0*aa + 250.0 * d_max*aa);
+    img.pix[pix_id].g = 100u + u32(200.0 * d_max*aa);
+    img.pix[pix_id].b = 100u + u32(100.0 * d_max*aa);
     img.pix[pix_id].a = 255u;
   } elseif (color_kind == ${conf.METAL}u ) {
     img.pix[pix_id].r = 150u + u32(100.0 * d_max);
     img.pix[pix_id].g = 150u + u32(100.0 * d_max);
     img.pix[pix_id].b = 150u + u32(100.0 * d_max);
     img.pix[pix_id].a = 255u;
+  } elseif (color_kind == ${conf.COCKPIT}u ) {
+    img.pix[pix_id].r = 100u + u32(100.0 * d_max);
+    img.pix[pix_id].g = 200u + u32(100.0 * d_max);
+    img.pix[pix_id].b = 250u + u32(100.0 * d_max);
+    img.pix[pix_id].a = 255u;
   }
 
 
-  if(collisions != 0u && color_kind != 0u) {
-    //img.pix[pix_id].r = 255u;
-    // img.pix[pix_id].g = 0u;
-    // img.pix[pix_id].b = 0u;
-    // img.pix[pix_id].a = 255u;
-  }
+  // if( input.cells[cell_id].active == 1u ) {
+  //   img.pix[pix_id].r = 255u;
+  //   img.pix[pix_id].g = 0u;
+  //   img.pix[pix_id].b = 0u;
+  //   img.pix[pix_id].a = 255u;
+  // }
+
+  // if( cell_id == uniforms.focus ) {
+  //   img.pix[pix_id].r = 255u;
+  //   img.pix[pix_id].g = 0u;
+  //   img.pix[pix_id].b = 0u;
+  //   img.pix[pix_id].a = 255u;
+  // }
 
 
 
@@ -173,12 +195,33 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
   }
 
 
-  if (abs(pixel_point.x) < 0.001 || abs(pixel_point.y) < 0.001) {
-    img.pix[pix_id].r = 200u;
-      img.pix[pix_id].g = 50u;
-      img.pix[pix_id].b = 50u;
-      img.pix[pix_id].a = 255u;
-  }
+  // if (abs(point.x) < 0.0001 || abs(point.y) < 0.0001) {
+  //   img.pix[pix_id].r = 200u;
+  //     img.pix[pix_id].g = 50u;
+  //     img.pix[pix_id].b = 50u;
+  //     img.pix[pix_id].a = 255u;
+  // }
+
+  // if (abs(point.x - focus_point.x) < 0.0001 || abs(point.y - focus_point.y) < 0.0001) {
+  //   img.pix[pix_id].r = 150u;
+  //     img.pix[pix_id].g = 150u;
+  //     img.pix[pix_id].b = 50u;
+  //     img.pix[pix_id].a = 255u;
+  // }
+
+  // if (abs(point.x ) < 0.001 || abs(point.y ) < 0.001) {
+  //   img.pix[pix_id].r = 150u;
+  //     img.pix[pix_id].g = 10u;
+  //     img.pix[pix_id].b = 50u;
+  //     img.pix[pix_id].a = 255u;
+  // }
+
+  // if (point.x > 0.02) {
+  //   img.pix[pix_id].r = 200u;
+  //     img.pix[pix_id].g = 0u;
+  //     img.pix[pix_id].b = 50u;
+  //     img.pix[pix_id].a = 255u;
+  // }
 
 }
 `}

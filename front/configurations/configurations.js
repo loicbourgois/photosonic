@@ -13,11 +13,12 @@ function config_list() {
     // 'c010': {},
     // 'c011': {},
     // 'c012': {},
-    //'c996': {},
+    // 'c996': {}, // turbo
     // 'c997': {},
     //'c998': {},
     'c999': {},
-    'c_editor':{}
+    //'c_editor':{},
+    'c_mass':{}
   }
 }
 window.particle_attributs_count = 8;
@@ -32,9 +33,8 @@ async function load(config_id) {
     ELECTRIC: 3,
     METAL:    4,
     TURBO:    5,
-    particle_attributs_count: 8,
-    consts_count: 5,
-    uniforms_attributs_count: 7,
+    COCKPIT:  6,
+    uniforms_attributs_count: 7 + 27 + 2,
     grid_attributs_count: 8,
     mouse: {
       x: -0.5,
@@ -46,7 +46,6 @@ async function load(config_id) {
     },
     tests: {}
   }
-  base_conf.uniforms_compute_attributs_count = base_conf.uniforms_attributs_count;
   const conf = conf_wrapper.config(base_conf);
   Object.assign(conf,base_conf);
   conf.particle_max_count = particle_max_count(conf)

@@ -7,7 +7,7 @@ struct Cell {
   x_old: f32;
   y_old: f32;
   collisions: u32;
-  bob: u32;
+  mapping: u32;
 };
 [[block]] struct Data {
   cells: array<Cell, ${conf.grid_size}>;
@@ -27,6 +27,8 @@ struct Pixel {
     time: f32;
     center: vec2<f32>;
     zoom: f32;
+    mappings: array<f32, 27>;
+    focus: u32;
 };
 
 

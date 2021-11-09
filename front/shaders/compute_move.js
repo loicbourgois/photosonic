@@ -1,23 +1,20 @@
-const KINDS = 7;
-
 function get (conf) {return `
 ${SHADER_COMMON}
 
-var<private> linking: array<array<f32, ${KINDS}>, ${KINDS}> = array<array<f32, ${KINDS}>, ${KINDS}> (
-  array<f32, ${KINDS}> (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),  // none
-  array<f32, ${KINDS}> (0.0, 0.9, 0.0, 0.0, 0.0, 0.0, 0.0),  // WATER
-  array<f32, ${KINDS}> (0.0, 0.0, 0.8, 0.0, 0.0, 0.0, 0.0),  // FIRE
-  array<f32, ${KINDS}> (0.0, 0.0, 0.0, 0.7, 0.0, 0.0, 0.0),  // ELECTRIC
-  array<f32, ${KINDS}> (0.0, 0.0, 0.0, 0.0, 3.8, 2.0, 2.8),  // METAL
-  array<f32, ${KINDS}> (0.0, 0.0, 0.0, 0.0, 2.0, 1.0, 1.0),  // TURBO
-  array<f32, ${KINDS}> (0.0, 0.0, 0.0, 0.0, 2.8, 1.0, 2.0),  // COCKPIT
+var<private> linking: array<array<f32, 6>, 6> = array<array<f32, 6>, 6> (
+  array<f32, 6> (0.0, 0.0, 0.0, 0.0, 0.0, 0.0),  // none
+  array<f32, 6> (0.0, 0.0, 0.0, 0.0, 0.0, 0.0),  // WATER
+  array<f32, 6> (0.0, 0.0, 0.0, 0.0, 0.0, 0.0),  // FIRE
+  array<f32, 6> (0.0, 0.0, 0.0, 0.0, 0.0, 0.0),  // ELECTRIC
+  array<f32, 6> (0.0, 0.0, 0.0, 0.0, 0.9, 1.0),  // METAL
+  array<f32, 6> (0.0, 0.0, 0.0, 0.0, 1.0, 0.0),  // TURBO
 );
 
 let delta_time = ${1.0 / 60.0};
 
-[[group(0), binding(0)]] var<storage, read>   input         : Data;
-[[group(0), binding(1)]] var<storage, write>  output        : Data;
-[[group(0), binding(2)]] var<storage, read>  uniforms       : Uniforms;
+[[group(0), binding(0)]] var<storage, read>   input     : Data;
+[[group(0), binding(1)]] var<storage, write>  output    : Data;
+[[group(0), binding(2)]] var<storage, write>  uniforms  : Uniforms;
 [[group(0), binding(3)]] var<storage, write>  uniforms_out  : Uniforms;
 [[stage(compute), workgroup_size(${conf.workgroup_size}, ${conf.workgroup_size})]]
 fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
@@ -57,7 +54,6 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
     var forces  = vec2<f32>(0.0, 0.0);
     var moves   = vec2<f32>(0.0, 0.0);
 
-
     let p1 = input.cells[cell_id];
     let velocity1 = vec2<f32>(p1.x, p1.y) - vec2<f32>(p1.x_old, p1.y_old);
     var colision_move = vec2<f32>(0.0, 0.0);
@@ -75,65 +71,20 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
         let p2 = input.cells[p2id];
         let d = distance_wrap_around(vec2<f32>(p1.x, p1.y), vec2<f32>(p2.x, p2.y)) ;
         let delta_position = delta_position_wrap_around (vec2<f32>(p1.x, p1.y), vec2<f32>(p2.x, p2.y) );
-        if (d < DIAMETER * 1.2 && linking[p1.kind][p2.kind] > 0.0001 ) {
-          linked_neighbours_delta = linked_neighbours_delta + delta_position;
-        }
-
-        if (d < DIAMETER * 1.2 ) {
-          attractions = attractions + 1u;
-          //moves = moves + normalize(delta_position) * (DIAMETER - d) * linking[p1.kind][p2.kind];
-          forces = forces +  normalize(delta_position) *  (DIAMETER - d) * linking[p1.kind][p2.kind] * 100.0;
-        }
         if (d < DIAMETER ) {
-          // https://en.wikipedia.org/wiki/Elastic_collision#Two-dimensional_collision_with_two_moving_objects
-          let velocity2 = vec2<f32>(p2.x-p2.x_old, p2.y-p2.y_old);
-          let delta_velocity = velocity1 - velocity2;
-          let mass_2 = 1.0;
-          let mass_factor = 2.0 * mass_2 / (mass_1 + mass_2);
-          let dot_vp = dot(delta_velocity, delta_position);
-          let distance_ = distance(vec2<f32>(0.0, 0.0), delta_position);
-          let distance_squared = distance_ * distance_;
-          let acceleration = delta_position * mass_factor * dot_vp / distance_squared;
-          if (linking[p1.kind][p2.kind] > 0.00001 ) {
-            dx_collision = dx_collision - acceleration.x * 0.5;
-            dy_collision = dy_collision - acceleration.y * 0.5;
-          }
-          else {
-            dx_collision = dx_collision - acceleration.x*1.0;
-            dy_collision = dy_collision - acceleration.y*1.0;
-          }
+          // collisions = collisions + 1u;
+          moves = moves + normalize(delta_position) * (DIAMETER - d) * 0.2 ;
         }
       }
     }
 
-
-    var dx_turbo = 0.0;
-    var dy_turbo = 0.0;
-    var turbo = 20.0 * DIAMETER;
-
-
-    if (attractions > 0u && p1.kind == ${conf.TURBO}u) {
-       forces = forces - normalize(linked_neighbours_delta) *  turbo * uniforms.mappings[p1.mapping];
-    }
-
-
-    let acceleration = forces / mass_1;
-    var speed = vec2<f32>(p1.x, p1.y) - vec2<f32>(p1.x_old, p1.y_old)
-      + acceleration * delta_time * delta_time
-      + vec2<f32>(dx_collision, dy_collision);
-
-    let max_speed = f32(${conf.max_speed});
-    speed.x = clamp(speed.x, -max_speed, max_speed);
-    speed.y = clamp(speed.y, -max_speed, max_speed);
-
-    let x_old_ = input.cells[cell_id].x + moves.x;
-    let y_old_ = input.cells[cell_id].y + moves.y;
-    let x = fract(x_old_ + speed.x);
-    let y = fract(y_old_ + speed.y);
-    let x_old = x - speed.x;
-    let y_old = y - speed.y;
+    let x = fract(input.cells[cell_id].x + moves.x);
+    let y = fract(input.cells[cell_id].y + moves.y);
+    let x_old = x - (input.cells[cell_id].x - input.cells[cell_id].x_old);
+    let y_old = y - (input.cells[cell_id].y - input.cells[cell_id].y_old);
 
     let cell_id_new = u32(x * ${conf.grid_width}.0) + u32(y * ${conf.grid_width}.0 )  * ${conf.grid_width}u;
+
 
     output.cells[cell_id_new] = input.cells[cell_id];
     output.cells[cell_id_new].active = 1u;

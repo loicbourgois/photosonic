@@ -91,10 +91,23 @@ function get(buffer, particle_id, conf) {
     y_old: get_particle_y_old(buffer, particle_id, conf),
   }
 }
-function set(buffer, particle_id, x, y, dx, dy, kind, conf) {
+
+function cell_id(x, y, conf) {
+  x = (x + 1.0) % 1.0
+  y = (y + 1.0) % 1.0
   const x_id = Math.floor(x*conf.grid_width);
-  const y_id = Math.floor(y*conf.grid_height);
-  const cell_id = Math.floor( (x_id + y_id*conf.grid_width) * conf.grid_attributs_count * 4 );
+  const y_id = Math.floor( (y*conf.grid_height)%conf.grid_height );
+  return Math.floor ((x_id + y_id*conf.grid_width)  )
+}
+
+function set(buffer, particle_id, x, y, dx, dy, kind, conf, mapping) {
+  x = (x + 1.0) % 1.0
+  y = (y + 1.0) % 1.0
+  const cell_id_ = cell_id(x, y, conf) * conf.grid_attributs_count * 4;
+
+  // console.log(x_id, y_id, conf.grid_height)
+  //
+  // console.log(cell_id)
 
   if (!dx) {
     dx = 0.0;
@@ -102,35 +115,23 @@ function set(buffer, particle_id, x, y, dx, dy, kind, conf) {
   if (!dy) {
     dy = 0.0;
   }
+  mapping = {
+      'a':1,
+      'z':26,
+      undefined: 0,
+  }[mapping]
+  if (!mapping) {
+    mapping = 0;
+  }
 
-  buffer.setUint32(cell_id  + 0 * 4, 1, conf.littleEndian)
-  buffer.setUint32(cell_id  + 1 * 4, kind, conf.littleEndian)
-  buffer.setFloat32(cell_id + 2 * 4, x, conf.littleEndian)
-  buffer.setFloat32(cell_id + 3 * 4, y, conf.littleEndian)
-  buffer.setFloat32(cell_id + 4 * 4, x-dx, conf.littleEndian)
-  buffer.setFloat32(cell_id + 5 * 4, y-dy, conf.littleEndian)
-
-
-  // let old_cell_id = get_particle_cell_id(buffer, particle_id, conf)
-  // let cell_id = buffer_position_cell_particle_id(
-  //   Math.floor(x*(conf.grid_width-1)),
-  //   Math.floor(y*(conf.grid_height-1)),
-  //   conf
-  // )
-  // let old_particle_id = get_cell_particle_id(buffer, cell_id, conf)
-  // if (old_cell_id != 999999999 && old_cell_id != cell_id) {
-  //   set_cell_particle_id(buffer, old_cell_id, 999999999, conf)
-  // }
-  // if (old_particle_id != 999999999 && old_particle_id != particle_id) {
-  //   set_particle_cell_id(buffer, old_particle_id, 999999999, conf)
-  // }
-  // set_particle_kind(buffer, particle_id, kind, conf)
-  // set_particle_x(buffer, particle_id, x, conf)
-  // set_particle_y(buffer, particle_id, y, conf)
-  // set_particle_x_old(buffer, particle_id, x-dx, conf)
-  // set_particle_y_old(buffer, particle_id, y-dy, conf)
-  // set_particle_cell_id(buffer, particle_id, cell_id, conf)
-  // set_cell_particle_id(buffer, cell_id, particle_id, conf)
+  buffer.setUint32(cell_id_  + 0 * 4, 1, conf.littleEndian)
+  buffer.setUint32(cell_id_  + 1 * 4, kind, conf.littleEndian)
+  buffer.setFloat32(cell_id_ + 2 * 4, x, conf.littleEndian)
+  buffer.setFloat32(cell_id_ + 3 * 4, y, conf.littleEndian)
+  buffer.setFloat32(cell_id_ + 4 * 4, x-dx, conf.littleEndian)
+  buffer.setFloat32(cell_id_ + 5 * 4, y-dy, conf.littleEndian)
+  buffer.setFloat32(cell_id_ + 6 * 4, 2, conf.littleEndian)
+  buffer.setUint32(cell_id_ + 7 * 4, mapping, conf.littleEndian)
 }
 
 
@@ -139,5 +140,6 @@ export {
   get,
   set_particle_cell_id,
   set_cell_particle_id,
-  buffer_position_cell_particle_id
+  buffer_position_cell_particle_id,
+  cell_id
 }
