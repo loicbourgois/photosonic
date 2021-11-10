@@ -83,12 +83,10 @@ function set_cell_particle_id(data, cell_id, particle_id, conf) {
 function get_cell_particle_id(data, cell_id, conf) {
   return data.getUint32(cell_id, conf.littleEndian)
 }
-function get(buffer, particle_id, conf) {
+function get(buffer, cell_id, conf) {
   return {
-    x: get_particle_x(buffer, particle_id, conf),
-    y: get_particle_y(buffer, particle_id, conf),
-    x_old: get_particle_x_old(buffer, particle_id, conf),
-    y_old: get_particle_y_old(buffer, particle_id, conf),
+    x: buffer.getFloat32(cell_id + 2 * 4, conf.littleEndian),
+    y: buffer.getFloat32(cell_id + 3 * 4, conf.littleEndian),
   }
 }
 
@@ -117,6 +115,14 @@ function set(buffer, particle_id, x, y, dx, dy, kind, conf, mapping) {
   }
   mapping = {
       'a':1,
+      // 'b':26,
+      // 'c':26,
+      // 'd':26,
+      // 'b':26,
+      // 'b':26,
+      // 'b':26,
+      'i': 9,
+      'o': 15,
       'z':26,
       undefined: 0,
   }[mapping]

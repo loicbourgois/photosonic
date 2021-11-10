@@ -3,10 +3,10 @@ mod utils;
 use crate::utils::set_panic_hook;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
-use web_sys::Window;
-use web_sys::GpuBufferUsage;
 use web_sys::GpuBufferDescriptor;
+use web_sys::GpuBufferUsage;
 use web_sys::GpuDevice;
+use web_sys::Window;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -52,6 +52,6 @@ pub fn go(gpu_device: &GpuDevice) {
     let buffer_size = 2.0;
     let _gpu_buffer_a = gpu_device.create_buffer(&GpuBufferDescriptor::new(
         buffer_size,
-        GpuBufferUsage::MAP_WRITE | GpuBufferUsage::COPY_SRC
+        GpuBufferUsage::MAP_WRITE | GpuBufferUsage::COPY_SRC,
     ));
 }

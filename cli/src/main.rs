@@ -4,6 +4,8 @@ use clap::{App, SubCommand};
 use std::process::Command;
 extern crate dirs;
 extern crate notify;
+mod generate;
+use crate::generate::generate;
 
 use notify::{watcher, RecursiveMode, Watcher};
 use std::sync::mpsc::channel;
@@ -92,6 +94,10 @@ fn start() {
             .current_dir(format!("{}/front", base_dir())),
     );
 }
+fn watch_run() {
+    generate(format!("{}/front/generated", base_dir())).unwrap();
+    build();
+}
 fn watch() {
     let (tx, rx) = channel();
     let mut watcher = watcher(tx, Duration::from_secs(1)).unwrap();
@@ -104,9 +110,10 @@ fn watch() {
             RecursiveMode::Recursive,
         )
         .unwrap();
+    watch_run();
     loop {
         match rx.recv() {
-            Ok(_) => build(),
+            Ok(_) => watch_run(),
             Err(e) => println!("watch error: {:?}", e),
         }
     }

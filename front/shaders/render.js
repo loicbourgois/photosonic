@@ -52,16 +52,18 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
   let grid_width = f32(${conf.grid_width});
   let grid_height = f32(${conf.grid_height});
 
-
-   //let focus_point = uniforms.center;
-  let focus_point = vec2<f32>(
+  let focus_cell = vec2<f32>(
     input.cells[uniforms.focus].x,
     input.cells[uniforms.focus].y
   );
+  let dp = delta_position_wrap_around(uniforms.center, focus_cell)*1.2;
+  let focus_point = fract(focus_cell - dp);
+
+  let zoom = uniforms.zoom * (1.0 - 10.0*distance_wrap_around(uniforms.center, focus_cell) );
 
   let point = vec2<f32>(
-    fract((f32(gid.x) / img_width / uniforms.zoom - 0.5 / uniforms.zoom + focus_point.x + 1.0)),
-    fract((f32(gid.y) / img_height / uniforms.zoom - 0.5 / uniforms.zoom + focus_point.y + 1.0))
+    fract((f32(gid.x) / img_width / zoom - 0.5 / zoom + focus_point.x + 1.0)),
+    fract((f32(gid.y) / img_height / zoom - 0.5 / zoom + focus_point.y + 1.0))
   );
   let DIAMETER: f32 = ${2.0 / conf.grid_width};
   let cell_id = u32(point.x*grid_width) + u32(point.y*grid_width)*u32(grid_width);
@@ -107,12 +109,12 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
   for (var i = 0 ; i < 9 ; i=i+1) {
     let particle_id_ = coloring_cell_ids[i];
     let particle = input.cells[particle_id_];
-    // let particle_center = vec2<f32>(
-    //   (particle.x+particle.x_old)*0.5,
-    //   (particle.y+particle.y_old)*0.5);
     let particle_center = vec2<f32>(
-      particle.x,
-      particle.y);
+      (particle.x+particle.x_old)*0.5,
+      (particle.y+particle.y_old)*0.5);
+    // let particle_center = vec2<f32>(
+    //   particle.x,
+    //   particle.y);
     let d = 1.0 - distance_( point, particle_center )*${conf.grid_width}.0;
     if (input.cells[particle_id_].active == 1u && d > d_max) {
       d_max = d;
@@ -120,15 +122,6 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
       particle_id = particle_id_;
     }
   }
-
-  let collisions = input.cells[particle_id].collisions;
-
-
-
-
-  // particle_id = input.cells[ cell_id ].particle_id;
-
-
 
 
   if (color_kind == ${conf.FIRE}u ) {
@@ -162,9 +155,25 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
     img.pix[pix_id].g = 200u + u32(100.0 * d_max);
     img.pix[pix_id].b = 250u + u32(100.0 * d_max);
     img.pix[pix_id].a = 255u;
+  } elseif (color_kind == ${conf.WOOD}u ) {
+    img.pix[pix_id].r = 100u + u32(200.0 * d_max);
+    img.pix[pix_id].g = 100u + u32(100.0 * d_max);
+    img.pix[pix_id].b = u32(1.0 * d_max);
+    img.pix[pix_id].a = 255u;
+  } elseif (color_kind == ${conf.LEAF}u ) {
+    img.pix[pix_id].r = 10u + u32(100.0 * d_max);
+    img.pix[pix_id].g = 170u + u32(100.0 * d_max);
+    img.pix[pix_id].b = 20u + u32(100.0 * d_max);
+    img.pix[pix_id].a = 255u;
+  } elseif (color_kind != 0u ) {
+    img.pix[pix_id].r = 255u + u32(100.0 * d_max);
+    img.pix[pix_id].g = 20u + u32(100.0 * d_max);
+    img.pix[pix_id].b = 20u + u32(100.0 * d_max);
+    img.pix[pix_id].a = 255u;
   }
 
 
+  // Show active cells
   // if( input.cells[cell_id].active == 1u ) {
   //   img.pix[pix_id].r = 255u;
   //   img.pix[pix_id].g = 0u;
@@ -172,6 +181,8 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
   //   img.pix[pix_id].a = 255u;
   // }
 
+
+  // Show focus cell
   // if( cell_id == uniforms.focus ) {
   //   img.pix[pix_id].r = 255u;
   //   img.pix[pix_id].g = 0u;
@@ -180,13 +191,11 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
   // }
 
 
-
-
-
   let d_mouse = distance(vec2<f32>(gid.xy), vec2<f32>((uniforms.mouse.x * img_width), (uniforms.mouse.y * img_height)));
-  let diameter_mouse = img_width / ${conf.grid_width}.0 * uniforms.zoom;
+  let diameter_mouse = img_width / ${conf.grid_width}.0 * zoom;
 
 
+  // Show mouse
   if (   d_mouse < diameter_mouse &&  d_mouse > diameter_mouse*0.5 ) {
     img.pix[pix_id].r = 250u;
       img.pix[pix_id].g = 150u;
@@ -195,6 +204,7 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
   }
 
 
+  // Show origin cross
   // if (abs(point.x) < 0.0001 || abs(point.y) < 0.0001) {
   //   img.pix[pix_id].r = 200u;
   //     img.pix[pix_id].g = 50u;
@@ -202,27 +212,14 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
   //     img.pix[pix_id].a = 255u;
   // }
 
+
+  // Show focus cross
   // if (abs(point.x - focus_point.x) < 0.0001 || abs(point.y - focus_point.y) < 0.0001) {
   //   img.pix[pix_id].r = 150u;
   //     img.pix[pix_id].g = 150u;
   //     img.pix[pix_id].b = 50u;
   //     img.pix[pix_id].a = 255u;
   // }
-
-  // if (abs(point.x ) < 0.001 || abs(point.y ) < 0.001) {
-  //   img.pix[pix_id].r = 150u;
-  //     img.pix[pix_id].g = 10u;
-  //     img.pix[pix_id].b = 50u;
-  //     img.pix[pix_id].a = 255u;
-  // }
-
-  // if (point.x > 0.02) {
-  //   img.pix[pix_id].r = 200u;
-  //     img.pix[pix_id].g = 0u;
-  //     img.pix[pix_id].b = 50u;
-  //     img.pix[pix_id].a = 255u;
-  // }
-
 }
 `}
 export {

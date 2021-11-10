@@ -13,7 +13,7 @@ function config_list() {
     // 'c010': {},
     // 'c011': {},
     // 'c012': {},
-    // 'c996': {}, // turbo
+    //'c996': {}, // turbo
     // 'c997': {},
     //'c998': {},
     'c999': {},
@@ -27,13 +27,8 @@ window.consts_count = 5;
 
 async function load(config_id) {
   const conf_wrapper = await import(`./${config_id}.js`)
+  const materials = (await import("../generated/particles0.js")).materials;
   const base_conf = {
-    WATER:    1,
-    FIRE:     2,
-    ELECTRIC: 3,
-    METAL:    4,
-    TURBO:    5,
-    COCKPIT:  6,
     uniforms_attributs_count: 7 + 27 + 2,
     grid_attributs_count: 8,
     mouse: {
@@ -46,8 +41,9 @@ async function load(config_id) {
     },
     tests: {}
   }
+  Object.assign(base_conf, materials);
   const conf = conf_wrapper.config(base_conf);
-  Object.assign(conf,base_conf);
+  Object.assign(conf, base_conf);
   conf.particle_max_count = particle_max_count(conf)
   conf.grid_size = grid_size(conf)
   conf.image_size = image_size(conf)

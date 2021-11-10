@@ -31,31 +31,56 @@ function buffer_image_size_image(conf) {
 
 const compute_times = []
 function compute_timer(t) {
-  compute_times.push(t)
+  compute_times.push({
+    duration: t,
+    timestamp: performance.now()
+  })
   while (len(compute_times) > 100) {
     compute_times.shift()
   }
   let compute_time = 0;
   for (let x of compute_times) {
-    compute_time += x;
+    compute_time += x.duration;
   }
+
   compute_time /= len(compute_times)
   document.querySelector("#compute_time").innerHTML = `${compute_time.toFixed(2)}ms`
+
+  const a = len(compute_times) / ( (compute_times[len(compute_times)-1].timestamp - compute_times[0].timestamp) / 1000 ) ;
+  let pre = ""
+  if (a < 10) {
+    pre = "&#8239;&#8239;"
+  } else if (a < 100) {
+    pre = "&#8239;"
+  }
+  document.querySelector("#cps_value").innerHTML = `${pre}${a.toFixed(1)} CPS`
 }
 
 
 const render_times = []
 function render_timer(t) {
-  render_times.push(t)
+  render_times.push({
+    duration: t,
+    timestamp: performance.now()
+  })
   while (len(render_times) > 100) {
     render_times.shift()
   }
   let render_time = 0;
   for (let x of render_times) {
-    render_time += x;
+    render_time += x.duration;
   }
   render_time /= len(render_times)
   document.querySelector("#render_time").innerHTML = `${render_time.toFixed(2)}ms`
+
+  const a = len(render_times) / ( (render_times[len(render_times)-1].timestamp - render_times[0].timestamp) / 1000 ) ;
+  let pre = ""
+  if (a < 10) {
+    pre = "&#8239;&#8239;"
+  } else if (a < 100) {
+    pre = "&#8239;"
+  }
+  document.querySelector("#fps_value").innerHTML = `${pre}${a.toFixed(1)} FPS`
 }
 
 
@@ -334,7 +359,7 @@ async function start(conf, end_callback) {
     ]
   });
   const shader_module = device.createShaderModule({
-    code: compute_shader.get(conf)
+    code: await compute_shader.get(conf)
   });
   const shader_module_move = device.createShaderModule({
     code: compute_shader_move.get(conf)
@@ -460,10 +485,6 @@ async function start(conf, end_callback) {
 }
 
 
-let fpss = []
-let fpss_time = performance.now();
-
-
 async function step(
   conf,
   device,
@@ -488,17 +509,6 @@ async function step(
   end_callback,
   step_ = 0,
 ) {
-  fpss.push(performance.now()-fpss_time)
-  while (len(fpss) > 100) {
-    fpss.shift()
-  }
-  let fps = 0;
-  for (let f of fpss) {
-    fps += f;
-  }
-  fps /= len(fpss)
-  document.querySelector("#fps_value").innerHTML = `${Math.floor(1000/(fps))}`
-  fpss_time = performance.now();
   await compute(
     conf,
     device,
@@ -512,8 +522,7 @@ async function step(
     gpu_buffers,
     compute_pipeline,
     compute_pipeline_render,
-
-        pipelines,
+    pipelines,
     bind_group,
     bind_group_render,
     dispatch_x,
@@ -523,8 +532,6 @@ async function step(
     ctx,
     step_
   )
-
-
   const step_tests = conf.tests[step_];
   if (step_tests) {
     await gpu_buffer_D.mapAsync(GPUMapMode.READ);
@@ -551,8 +558,6 @@ async function step(
       }
       throw `test failed`
     }
-
-
     gpu_buffer_D.unmap()
   }
 
@@ -591,7 +596,7 @@ async function step(
 
 let user_input = true;
 
-const STEP_COMPUTE = 2;
+const STEP_COMPUTE = 4;
 
 
 async function compute(
@@ -657,7 +662,7 @@ async function compute(
 // reset
 {
   const command_encoder = device.createCommandEncoder();
-  if (step_ % STEP_COMPUTE == 1 || step_ == 0) {
+  if (step_ % STEP_COMPUTE == 1 || step_ == 0 || STEP_COMPUTE == 1) {
     command_encoder.copyBufferToBuffer(gpu_buffers.uniforms_write, 0, gpu_buffers.uniforms_in, 0, conf.uniforms_attributs_count*4 );
   } else {
     command_encoder.copyBufferToBuffer(gpu_buffers.uniforms_out, 0, gpu_buffers.uniforms_in, 0, conf.uniforms_attributs_count*4 );
@@ -738,9 +743,9 @@ async function compute(
 
 
   compute_timer(performance.now() - start)
-  const start_render = performance.now();
 
   if (step_ % STEP_COMPUTE == 0) {
+    const start_render = performance.now();
     let gpu_buffer_image_read_map = gpu_buffer_image_read.mapAsync(GPUMapMode.READ);
     let gpu_buffers_uniforms_write_map =  gpu_buffers.uniforms_write.mapAsync(GPUMapMode.WRITE);
     let gpu_buffers_uniforms_read_map =  gpu_buffers.uniforms_read.mapAsync(GPUMapMode.READ);
@@ -754,27 +759,42 @@ async function compute(
       ),
       0, 0
     );
-
     let view = new DataView(gpu_buffers.uniforms_write.getMappedRange())
     let view_2 = new DataView(gpu_buffers.uniforms_read.getMappedRange())
     new Uint8Array(view.buffer).set( new Uint8Array( view_2.buffer ) );
 
     // let buffer = new DataView(gpu_buffers.uniforms_write.getMappedRange())
+
+    // let focus_id = view_2.getUint32((7+27)*4, conf.littleEndian)
+    // let focus_cell_id = focus_id * conf.grid_attributs_count * 4;
+    // focus_cell_id = 0;
+    // console.log(particle.get(view_2, focus_cell_id, conf))
+
+
     view.setFloat32(0 *4, conf.mouse.x, conf.littleEndian);
     view.setFloat32(1 *4, conf.mouse.y, conf.littleEndian);
     view.setUint32(2  *4,   step_, conf.littleEndian);
     view.setFloat32(3 *4,  performance.now(), conf.littleEndian);
-    view.setFloat32(4 *4,  conf.center.x, conf.littleEndian);
-    view.setFloat32(5 *4, conf.center.y, conf.littleEndian);
+    // view.setFloat32(4 *4,  conf.center.x, conf.littleEndian);
+    // view.setFloat32(5 *4, conf.center.y, conf.littleEndian);
     view.setFloat32(6 *4, conf.zoom, conf.littleEndian);
 
     //console.log(keys)
-    if (keys[65]) {
+    if (keys[64+1]) {
       view.setFloat32( (7+1)*4 , 1.0, conf.littleEndian);
     } else {
       view.setFloat32( (7+1)*4 , 0.0, conf.littleEndian);
     }
-
+    if (keys[64+9]) {
+      view.setFloat32( (7+9)*4 , 1.0, conf.littleEndian);
+    } else {
+      view.setFloat32( (7+9)*4 , 0.0, conf.littleEndian);
+    }
+    if (keys[64+15]) {
+      view.setFloat32( (7+15)*4 , 1.0, conf.littleEndian);
+    } else {
+      view.setFloat32( (7+15)*4 , 0.0, conf.littleEndian);
+    }
     if (keys[90]) {
       view.setFloat32( (7+26)*4 , 1.0, conf.littleEndian);
     } else {
@@ -791,9 +811,9 @@ async function compute(
     gpu_buffer_image_read.unmap();
     gpu_buffers.uniforms_write.unmap();
     gpu_buffers.uniforms_read.unmap();
+    render_timer(performance.now() - start_render);
   }
   user_input = false;
-  render_timer(performance.now() - start_render);
 }
 
 

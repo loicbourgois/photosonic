@@ -1,16 +1,16 @@
 function config(c) {
   let c_ = {
     id: 'c999',
-    image_width: 1024,
-    image_height: 1024,
-    grid_width: 1024/2,
-    grid_height: 1024/2,
+    image_width: 1024/2,
+    image_height: 1024/2,
+    grid_width: 1024,
+    grid_height: 1024,
     workgroup_size: 8,
     grid_attributs_count: 1,
     particle_attributs_count: 8,
     consts_count: 2,
-    wait: 0,
-    zoom: 7.0,
+    wait: 1,
+    zoom: 10.0,
     size: 1,
     littleEndian: true,
     steps: "unlimited",
@@ -26,11 +26,11 @@ function config(c) {
   const a = c_.max_speed * 0.1;
   let particle_count = c_.grid_width * c_.grid_height / 4;
   console.log(particle_count, "particles")
-  for (var i = 0; i < particle_count/20; i++) {
-    for (let kind of [c.ELECTRIC, c.WATER, c.FIRE]) {
+  for (var i = 0; i < particle_count/10; i++) {
+    for (let kind of [/*c.ELECTRIC, c.WATER, c.FIRE, */c.WOOD, c.LEAF]) {
       let x = Math.random();
       let y = Math.random();
-      if ( Math.abs(x-0.5) < 0.47 && Math.abs(y-0.5)<0.47 ) {
+      if ( Math.abs(x-0.5) < 0.48 && Math.abs(y-0.5)<0.48 ) {
         c_.particles.push({
             x: x,
             y: y,
@@ -43,7 +43,7 @@ function config(c) {
   }
 
 
-  const A = 0.0015*2;
+  const A = 0.00150 / c_.grid_width*1024;
   c_.particles.push({
       x: -0.5*A,
       y: -A,
@@ -66,18 +66,20 @@ function config(c) {
   })
   c_.particles.push({
       x: 0.00,
-      y: 0.001,
+      y: 0.0005,
       kind: c.COCKPIT
   })
   c_.particles.push({
       x: -2*A,
       y: 0,
-      kind: c.METAL
+      kind: c.TURBO,
+      mapping: 'i'
   })
   c_.particles.push({
       x: 2*A,
       y: 0,
-      kind: c.METAL
+      kind: c.TURBO,
+      mapping: 'o'
   })
 
 

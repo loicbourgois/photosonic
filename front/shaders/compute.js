@@ -1,17 +1,9 @@
-const KINDS = 7;
-
-function get (conf) {return `
+async function get (conf) {
+console.log((await import("../generated/particles0.js")).linkings())
+  return `
 ${SHADER_COMMON}
 
-var<private> linking: array<array<f32, ${KINDS}>, ${KINDS}> = array<array<f32, ${KINDS}>, ${KINDS}> (
-  array<f32, ${KINDS}> (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),  // none
-  array<f32, ${KINDS}> (0.0, 0.9, 0.0, 0.0, 0.0, 0.0, 0.0),  // WATER
-  array<f32, ${KINDS}> (0.0, 0.0, 0.8, 0.0, 0.0, 0.0, 0.0),  // FIRE
-  array<f32, ${KINDS}> (0.0, 0.0, 0.0, 0.7, 0.0, 0.0, 0.0),  // ELECTRIC
-  array<f32, ${KINDS}> (0.0, 0.0, 0.0, 0.0, 3.8, 2.0, 2.8),  // METAL
-  array<f32, ${KINDS}> (0.0, 0.0, 0.0, 0.0, 2.0, 1.0, 1.0),  // TURBO
-  array<f32, ${KINDS}> (0.0, 0.0, 0.0, 0.0, 2.8, 1.0, 2.0),  // COCKPIT
-);
+${  (await import("../generated/particles0.js")).linkings()  }
 
 let delta_time = ${1.0 / 60.0};
 
@@ -145,6 +137,8 @@ fn main([[builtin(global_invocation_id)]] gid : vec3<u32>) {
 
     if (uniforms.focus == cell_id) {
       uniforms_out.focus = cell_id_new;
+      let dp = delta_position_wrap_around(vec2<f32>(x,y), uniforms_out.center);
+      uniforms_out.center = uniforms_out.center + dp*0.05;
     }
 
   }
